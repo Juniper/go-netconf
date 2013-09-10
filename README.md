@@ -25,7 +25,7 @@ package main
 import (
 	"code.google.com/p/go.crypto/ssh"
 	"fmt"
-	"netconf"
+	"github.com/nemith/go-netconf/netconf"
 )
 
 type clientPassword string
@@ -50,6 +50,8 @@ func main() {
 		panic(err)
 	}
 
+	defer s.Close()
+
 	fmt.Printf("Server Capabilities: '%+v'\n", s.ServerCapabilities)
 	fmt.Printf("Session Id: %d\n\n", s.SessionID)
 
@@ -60,8 +62,7 @@ func main() {
 	}
 	fmt.Printf("Reply: %+v", reply)
 
-	s.Close()
-
+	
 }
 
 ```

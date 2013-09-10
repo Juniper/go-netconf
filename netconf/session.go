@@ -45,10 +45,12 @@ func NewSession(t Transport) *Session {
 	s := new(Session)
 	s.Transport = t
 
+	// Receive Servers Hello message
 	serverHello, _ := t.ReceiveHello()
 	s.SessionID = serverHello.SessionID
 	s.ServerCapabilities = serverHello.Capabilities
 
+	// Send our hello using default capabilities.
 	t.SendHello(&HelloMessage{Capabilities: DEFAULT_CAPABILITIES})
 
 	return s

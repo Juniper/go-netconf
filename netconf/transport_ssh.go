@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	SSH_DEFAULT_PORT = 830
-	SSH_SUBSYSTEM    = "netconf"
+	SSH_DEFAULT_PORT      = 830
+	SSH_NETCONF_SUBSYSTEM = "netconf"
 )
 
 type TransportSSH struct {
@@ -97,43 +97,37 @@ func NewTranportSSH(target string, config *ssh.ClientConfig) (*TransportSSH, err
 		target = fmt.Sprintf("%s:%d", target, SSH_DEFAULT_PORT)
 	}
 
-	var t TransportSSH
-
 	conn, err := ssh.Dial("tcp", target, config)
 	if err != nil {
 		return nil, err
 	}
-	t.sshConn = conn
 
-	sess, err := t.sshConn.NewSession()
+	sess, err := conn.NewSession()
 	if err != nil {
-		t.Close()
 		return nil, err
 	}
-	t.sshSession = sess
 
 	si, err := sess.StdinPipe()
 	if err != nil {
-		t.Close()
 		return nil, err
 	}
-	t.sshStdin = si
 
 	so, err := sess.StdoutPipe()
 	if err != nil {
-		t.Close()
-		return nil, err
-	}
-	t.sshStdout = so
-
-	if err := sess.RequestSubsystem(SSH_SUBSYSTEM); err != nil {
 		return nil, err
 	}
 
-	return &t, nil
+	if err := sess.RequestSubsystem(SSH_NETCONF_SUBSYSTEM); err != nil {
+		return nil, err
+	}
+
+	return &TransportSSH{sshConn: conn, sshSession: sess, sshStdin: si, sshStdout: so}, nil
 }
 
 func NewSessionSSH(target string, config *ssh.ClientConfig) (*Session, error) {
 	t, err := NewTranportSSH(target, config)
-	return NewSession(t), err
+	if err != nil {
+		return nil, err
+	}
+	return NewSession(t), nil
 }
