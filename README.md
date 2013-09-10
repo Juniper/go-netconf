@@ -1,6 +1,9 @@
 netconf
 =======
 
+[![Build Status](https://travis-ci.org/nemith/go-netconf.png)](https://travis-ci.org/nemith/go-netconf)
+
+
 This library is a simple NETCONF client based on [RFC6241](http://tools.ietf.org/html/rfc6241) and [RFC6241](http://tools.ietf.org/html/rfc6242) (although not fully compliant yet).  Toady is only supports the SSH transport mechanism (and netconf 1.0 SSH framing)
 
 > **Note:** this is currently pre-alpha release.  API and features may and probably will change.  Suggestions and pull requests are welcome
