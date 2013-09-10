@@ -26,6 +26,7 @@ type RPCReply struct {
 	Errors  []RPCError `xml:"rpc-error,omitempty"`
 	Data    string     `xml:",innerxml"`
 	Ok      bool       `xml:",omitempty"`
+	XML     []byte     "xml:-"
 }
 
 type RPCError struct {
@@ -38,7 +39,7 @@ type RPCError struct {
 }
 
 func NewRpcMessage(op interface{}) *RPCMessage {
-	return NewRpcMessageID("uuid()", op)
+	return NewRpcMessageID(uuid(), op)
 }
 
 func NewRpcMessageID(id string, op interface{}) *RPCMessage {
@@ -58,4 +59,8 @@ func RPCUnlock(target string) *RPCMessage {
 func RPCGetConfig(source string) *RPCMessage {
 	op := fmt.Sprintf("<get-config><source><%s/></source></get-config>", source)
 	return NewRpcMessage(op)
+}
+
+func (re *RPCError) Error() string {
+	return fmt.Sprintf("netconf: rpc %s: '%s'", re.Severity, re.Message)
 }

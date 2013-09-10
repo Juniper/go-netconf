@@ -8,6 +8,7 @@ type Session struct {
 	Transport          Transport
 	SessionID          int
 	ServerCapabilities []string
+	ErrOnWarning       bool
 }
 
 func (s *Session) Close() error {
@@ -36,8 +37,23 @@ func (s *Session) Exec(msg []byte) (*RPCReply, error) {
 		return reply, err
 	}
 
-	err = xml.Unmarshal([]byte(rawReply), reply)
-	return reply, err
+	reply.XML = rawReply
+
+	if err := xml.Unmarshal([]byte(rawReply), reply); err != nil {
+		return nil, err
+	}
+
+	if reply.Errors != nil {
+		// We have errors, lets see if it's a warning or an error.
+		for _, rpcErr := range reply.Errors {
+			if rpcErr.Severity == "error" || s.ErrOnWarning {
+				return reply, &rpcErr
+			}
+		}
+
+	}
+
+	return reply, nil
 
 }
 

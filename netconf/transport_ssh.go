@@ -31,17 +31,12 @@ func (t *TransportSSH) Send(data []byte) error {
 }
 
 func splitOnSeperator(data []byte, atEOF bool) (advance int, token []byte, err error) {
-	//fmt.Printf("splitOnSeperator(): Input data: '%s'\n", data)
-
 	end := bytes.Index(data, []byte(MSG_SEPERATOR))
-	//fmt.Printf("splitOnSeperator(): Index of seperator: '%d'\n", end)
 
 	if end > 0 {
-		//fmt.Printf("splitOnSeperator(): Found seperator.  Returning '%s'\n", data[:end])
 		return end + len(MSG_SEPERATOR), data[:end], nil
 	}
 
-	//fmt.Printf("splitOnSeperator(): Requsting more data\n")
 	return 0, nil, nil
 }
 
