@@ -1,7 +1,7 @@
 netconf
 =======
 
-[![Build Status](https://travis-ci.org/nemith/go-netconf.png)](https://travis-ci.org/nemith/go-netconf)
+[![Build Status](https://travis-ci.org/Juniper/go-netconf.png)](https://travis-ci.org/Juniper/go-netconf)
 
 
 This library is a simple NETCONF client based on [RFC6241](http://tools.ietf.org/html/rfc6241) and [RFC6241](http://tools.ietf.org/html/rfc6242) (although not fully compliant yet).  Toady is only supports the SSH transport mechanism (and netconf 1.0 SSH framing)
@@ -18,7 +18,7 @@ Features
 Install
 -------
 
-    go get github.com/nemith/go-netconf/netconf
+    go get github.com/Juniper/go-netconf/netconf
     
 Example
 -------
@@ -28,7 +28,7 @@ package main
 import (
 	"code.google.com/p/go.crypto/ssh"
 	"fmt"
-	"github.com/nemith/go-netconf/netconf"
+	"github.com/Juniper/go-netconf/netconf"
 )
 
 type clientPassword string
