@@ -1,7 +1,7 @@
 package netconf
 
 import (
-	"bufio"
+	//"bufio"
 	"bytes"
 	"code.google.com/p/go.crypto/ssh"
 	"encoding/xml"
@@ -30,23 +30,34 @@ func (t *TransportSSH) Send(data []byte) error {
 	return nil // TODO: Implement error handling!
 }
 
-func splitOnSeperator(data []byte, atEOF bool) (advance int, token []byte, err error) {
-	end := bytes.Index(data, []byte(MSG_SEPERATOR))
+func (t *TransportSSH) Receive() ([]byte, error) {
+	var out bytes.Buffer
+	buf := make([]byte, 4096)
 
-	if end > 0 {
-		return end + len(MSG_SEPERATOR), data[:end], nil
+	for {
+		n, err := t.sshStdout.Read(buf)
+
+		if n == 0 {
+			break // TODO: Handle Error
+		}
+
+		if err != nil {
+			// TODO: Handle Error
+			if err != io.EOF {
+				fmt.Printf("Read error: %s", err)
+			}
+			break
+		}
+
+		end := bytes.Index(buf, []byte(MSG_SEPERATOR))
+		if end > -1 {
+			out.Write(buf[0:end])
+			return out.Bytes(), nil
+		}
+		out.Write(buf[0:n])
 	}
 
-	return 0, nil, nil
-}
-
-func (t *TransportSSH) Receive() ([]byte, error) {
-	scanner := bufio.NewScanner(t.sshStdout)
-	scanner.Split(splitOnSeperator)
-
-	scanner.Scan()
-
-	return []byte(scanner.Text()), scanner.Err()
+	return nil, nil
 }
 
 func (t *TransportSSH) Close() error {
