@@ -21,12 +21,24 @@ type RPCMessage struct {
 	Operation  interface{} `xml:",innerxml"` // TODO: Support multiple operations
 }
 
+func NewRpcMessage(op interface{}) *RPCMessage {
+	return NewRpcMessageID(uuid(), op)
+}
+
+func (rm *RPCMessage) String() string {
+	val, err := xml.MarshalIndent(rm, "  ", "    ")
+	if err != nil {
+		return ""
+	}
+	return string(val)
+}
+
 type RPCReply struct {
-	XMLName xml.Name   `xml:"rpc-reply"`
-	Errors  []RPCError `xml:"rpc-error,omitempty"`
-	Data    string     `xml:",innerxml"`
-	Ok      bool       `xml:",omitempty"`
-	XML     []byte     "xml:-"
+	XMLName  xml.Name   `xml:"rpc-reply"`
+	Errors   []RPCError `xml:"rpc-error,omitempty"`
+	Data     string     `xml:",innerxml"`
+	Ok       bool       `xml:",omitempty"`
+	RawReply string     "xml:-"
 }
 
 type RPCError struct {
@@ -38,8 +50,8 @@ type RPCError struct {
 	Info     string `xml:",innerxml"`
 }
 
-func NewRpcMessage(op interface{}) *RPCMessage {
-	return NewRpcMessageID(uuid(), op)
+func (re *RPCError) Error() string {
+	return fmt.Sprintf("netconf: rpc %s: '%s'", re.Severity, re.Message)
 }
 
 func NewRpcMessageID(id string, op interface{}) *RPCMessage {
@@ -59,8 +71,4 @@ func RPCUnlock(target string) *RPCMessage {
 func RPCGetConfig(source string) *RPCMessage {
 	op := fmt.Sprintf("<get-config><source><%s/></source></get-config>", source)
 	return NewRpcMessage(op)
-}
-
-func (re *RPCError) Error() string {
-	return fmt.Sprintf("netconf: rpc %s: '%s'", re.Severity, re.Message)
 }

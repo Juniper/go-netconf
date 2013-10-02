@@ -16,30 +16,24 @@ func (s *Session) Close() error {
 }
 
 func (s *Session) ExecRPC(rpc *RPCMessage) (*RPCReply, error) {
-	val, err := xml.MarshalIndent(rpc, "  ", "    ")
-	if err != nil {
-		return nil, err
-	}
-
-	return s.Exec(val)
+	return s.Exec(rpc.String())
 }
 
-func (s *Session) Exec(msg []byte) (*RPCReply, error) {
+func (s *Session) Exec(msg string) (*RPCReply, error) {
 	reply := new(RPCReply)
 
-	err := s.Transport.Send(msg)
+	err := s.Transport.Send([]byte(msg))
 	if err != nil {
 		return reply, err
 	}
 
-	rawReply, err := s.Transport.Receive()
+	rawXml, err := s.Transport.Receive()
 	if err != nil {
 		return reply, err
 	}
+	reply.RawReply = string(rawXml)
 
-	reply.XML = rawReply
-
-	if err := xml.Unmarshal([]byte(rawReply), reply); err != nil {
+	if err := xml.Unmarshal(rawXml, reply); err != nil {
 		return nil, err
 	}
 
