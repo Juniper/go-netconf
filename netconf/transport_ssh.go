@@ -137,3 +137,22 @@ func NewSessionSSH(target string, config *ssh.ClientConfig) (*Session, error) {
 	}
 	return NewSession(t), nil
 }
+
+type simpleSSHPassword string
+
+func (p simpleSSHPassword) Password(user string) (string, error) {
+	return string(p), nil
+}
+
+// SSHConfigPassword is a convience function that takes a username and password
+// and returns a new ssh.ClientConfig setup to pass that username and password.
+func SSHConfigPassword(user string, pass string) *ssh.ClientConfig {
+	type clientPassword string
+
+	return &ssh.ClientConfig{
+		User: user,
+		Auth: []ssh.ClientAuth{
+			ssh.ClientAuthPassword(simpleSSHPassword(pass)),
+		},
+	}
+}
