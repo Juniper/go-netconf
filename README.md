@@ -31,24 +31,12 @@ import (
 	"github.com/Juniper/go-netconf/netconf"
 )
 
-type clientPassword string
-
-func (p clientPassword) Password(user string) (string, error) {
-	return string(p), nil
-}
-
 func main() {
 	username := "myuser"
 	password := "mypassword"
 
-	sshConfig := &ssh.ClientConfig{
-		User: username,
-		Auth: []ssh.ClientAuth{
-			ssh.ClientAuthPassword(clientPassword(password)),
-		},
-	}
-
-	s, err := netconf.NewSessionSSH("172.16.1.1", sshConfig)
+	s, err := netconf.NewSessionSSH(flag.Arg(0),
+		netconf.SSHConfigPassword(username, password))
 	if err != nil {
 		panic(err)
 	}
@@ -64,8 +52,6 @@ func main() {
 		panic(err)
 	}
 	fmt.Printf("Reply: %+v", reply)
-
-	
 }
 
 ```
