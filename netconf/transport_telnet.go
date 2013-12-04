@@ -4,18 +4,11 @@ import (
 	"fmt"
 	"github.com/ziutek/telnet"
 	"strings"
-	"time"
 )
 
 const (
 	TELNET_DEFAULT_PORT = 23
-	TELNET_TIMEOUT      = 10 * time.Second
 )
-
-type VendorIOProc interface {
-	Login(*TransportTelnet, string, string) error
-	StartNetconf(*TransportTelnet) error
-}
 
 type TransportTelnet struct {
 	transportBasicIO

@@ -22,7 +22,7 @@ type JnprIOProc struct {
 
 var promptRE = regexp.MustCompile(`([>%])\s+`)
 
-func (j *JnprIOProc) Login(t *netconf.TransportTelnet, username string, password string) error {
+func (j *JnprIOProc) Login(t netconf.TransportIO, username string, password string) error {
 	t.WaitForString("ogin:")
 	t.Writeln([]byte(username))
 
@@ -45,7 +45,7 @@ func (j *JnprIOProc) Login(t *netconf.TransportTelnet, username string, password
 	return nil
 }
 
-func (j *JnprIOProc) StartNetconf(t *netconf.TransportTelnet) error {
+func (j *JnprIOProc) StartNetconf(t netconf.TransportIO) error {
 	switch j.cliMode {
 	case CLI_MODE_SHELL:
 		t.Writeln([]byte(NETCONF_CMD_SHELL))

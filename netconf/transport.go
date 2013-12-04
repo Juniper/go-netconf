@@ -30,6 +30,14 @@ type Transport interface {
 	SendHello(*HelloMessage) error
 }
 
+type TransportIO interface {
+	Transport
+	Writeln(b []byte) (int, error)
+	WaitForBytes(b []byte) ([]byte, error)
+	WaitForString(s string) (string, error)
+	WaitForRegexp(re *regexp.Regexp) ([]byte, [][]byte, error)
+}
+
 type transportBasicIO struct {
 	io.ReadWriteCloser
 	chunkedFraming bool
@@ -76,7 +84,9 @@ func (t *transportBasicIO) Writeln(b []byte) (int, error) {
 	return 0, nil
 }
 
-func (t *transportBasicIO) WaitForFunc(f func([]byte) (int, error)) ([]byte, error) {
+type matchFunc func([]byte) (int, error)
+
+func (t *transportBasicIO) WaitForFunc(f matchFunc) ([]byte, error) {
 	var out bytes.Buffer
 	buf := make([]byte, 4096)
 
