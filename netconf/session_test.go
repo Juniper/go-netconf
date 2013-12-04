@@ -1,5 +1,0 @@
-package netconf
-
-import (
-	"testing"
-)
