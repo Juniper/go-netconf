@@ -35,12 +35,6 @@ type transportBasicIO struct {
 	chunkedFraming bool
 }
 
-func (t *transportBasicIO) Writeln(b []byte) (int, error) {
-	t.Write(b)
-	t.Write([]byte("\n"))
-	return 0, nil
-}
-
 // Sends a well formated netconf rpc message as a slice of bytes adding on the
 // nessisary framining messages.
 func (t *transportBasicIO) Send(data []byte) error {
@@ -52,6 +46,34 @@ func (t *transportBasicIO) Send(data []byte) error {
 
 func (t *transportBasicIO) Receive() ([]byte, error) {
 	return t.WaitForBytes([]byte(MSG_SEPERATOR))
+}
+
+func (t *transportBasicIO) SendHello(hello *HelloMessage) error {
+	val, err := xml.MarshalIndent(hello, "  ", "    ")
+	if err != nil {
+		return err
+	}
+
+	err = t.Send(val)
+	return err
+}
+
+func (t *transportBasicIO) ReceiveHello() (*HelloMessage, error) {
+	hello := new(HelloMessage)
+
+	val, err := t.Receive()
+	if err != nil {
+		return hello, err
+	}
+
+	err = xml.Unmarshal([]byte(val), hello)
+	return hello, err
+}
+
+func (t *transportBasicIO) Writeln(b []byte) (int, error) {
+	t.Write(b)
+	t.Write([]byte("\n"))
+	return 0, nil
 }
 
 func (t *transportBasicIO) WaitForFunc(f func([]byte) (int, error)) ([]byte, error) {
@@ -114,28 +136,6 @@ func (t *transportBasicIO) WaitForRegexp(re *regexp.Regexp) ([]byte, [][]byte, e
 		return -1, nil
 	})
 	return out, matches, err
-}
-
-func (t *transportBasicIO) SendHello(hello *HelloMessage) error {
-	val, err := xml.MarshalIndent(hello, "  ", "    ")
-	if err != nil {
-		return err
-	}
-
-	err = t.Send(val)
-	return err
-}
-
-func (t *transportBasicIO) ReceiveHello() (*HelloMessage, error) {
-	hello := new(HelloMessage)
-
-	val, err := t.Receive()
-	if err != nil {
-		return hello, err
-	}
-
-	err = xml.Unmarshal([]byte(val), hello)
-	return hello, err
 }
 
 type ReadWriteCloser struct {
