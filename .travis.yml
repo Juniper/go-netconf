@@ -2,6 +2,8 @@ language: go
 
 go:
   - 1.1
+  - 1.2
   - tip
 
+install: (cd netconf; go get -d -v ./... && go build -v ./...)
 before_script: cd netconf
