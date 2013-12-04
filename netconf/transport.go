@@ -159,23 +159,11 @@ func (t *transportBasicIO) ReceiveHello() (*HelloMessage, error) {
 	return hello, err
 }
 
-type ReadWriteClose struct {
-	reader io.Reader
-	writer io.WriteCloser
+type ReadWriteCloser struct {
+	io.Reader
+	io.WriteCloser
 }
 
-func (r *ReadWriteClose) Read(b []byte) (int, error) {
-	return r.reader.Read(b)
-}
-
-func (r *ReadWriteClose) Write(b []byte) (int, error) {
-	return r.writer.Write(b)
-}
-
-func (r *ReadWriteClose) Close() error {
-	return r.writer.Close()
-}
-
-func NewReadWriteCloser(r io.Reader, w io.WriteCloser) *ReadWriteClose {
-	return &ReadWriteClose{reader: r, writer: w}
+func NewReadWriteCloser(r io.Reader, w io.WriteCloser) *ReadWriteCloser {
+	return &ReadWriteCloser{r, w}
 }
