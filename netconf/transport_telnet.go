@@ -34,7 +34,7 @@ func (t *TransportTelnet) Dial(target string, username string, password string, 
 	tn.SetUnixWriteMode(true)
 
 	t.telnetConn = tn
-	t.io = tn
+	t.ReadWriteCloser = tn
 	t.chunkedFraming = false
 
 	vendor.Login(t, username, password)

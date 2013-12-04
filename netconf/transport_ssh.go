@@ -69,7 +69,7 @@ func (t *TransportSSH) Dial(target string, config *ssh.ClientConfig) error {
 		return err
 	}
 
-	t.io = NewReadWriteCloser(reader, writer)
+	t.ReadWriteCloser = NewReadWriteCloser(reader, writer)
 
 	if err := t.sshSession.RequestSubsystem(SSH_NETCONF_SUBSYSTEM); err != nil {
 		return err

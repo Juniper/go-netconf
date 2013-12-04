@@ -31,30 +31,22 @@ type Transport interface {
 }
 
 type transportBasicIO struct {
-	io             io.ReadWriteCloser
+	io.ReadWriteCloser
 	chunkedFraming bool
 }
 
-func (t *transportBasicIO) Read(b []byte) (int, error) {
-	return t.io.Read(b)
-}
-
-func (t *transportBasicIO) Write(b []byte) (int, error) {
-	return t.io.Write(b)
-}
-
 func (t *transportBasicIO) Writeln(b []byte) (int, error) {
-	t.io.Write(b)
-	t.io.Write([]byte("\n"))
+	t.Write(b)
+	t.Write([]byte("\n"))
 	return 0, nil
 }
 
 // Sends a well formated netconf rpc message as a slice of bytes adding on the
 // nessisary framining messages.
 func (t *transportBasicIO) Send(data []byte) error {
-	t.io.Write(data)
-	t.io.Write([]byte(MSG_SEPERATOR))
-	t.io.Write([]byte("\n"))
+	t.Write(data)
+	t.Write([]byte(MSG_SEPERATOR))
+	t.Write([]byte("\n"))
 	return nil // TODO: Implement error handling!
 }
 
@@ -67,7 +59,7 @@ func (t *transportBasicIO) WaitForBytes(m []byte) ([]byte, error) {
 	buf := make([]byte, 4096)
 
 	for {
-		n, err := t.io.Read(buf)
+		n, err := t.Read(buf)
 
 		if n == 0 {
 			return nil, fmt.Errorf("WaitForBytes read no data.")
@@ -104,7 +96,7 @@ func (t *transportBasicIO) WaitForRegexp(re *regexp.Regexp) ([]byte, [][]byte, e
 
 	buf := make([]byte, 4096)
 	for {
-		n, err := t.io.Read(buf)
+		n, err := t.Read(buf)
 
 		if n == 0 {
 			break // TODO: Handle Error
@@ -131,10 +123,6 @@ func (t *transportBasicIO) WaitForRegexp(re *regexp.Regexp) ([]byte, [][]byte, e
 		out.Write(buf[0:n])
 	}
 	return nil, nil, fmt.Errorf("WaitForRegexp failed")
-}
-
-func (t *transportBasicIO) Close() error {
-	return t.io.Close()
 }
 
 func (t *transportBasicIO) SendHello(hello *HelloMessage) error {

@@ -48,7 +48,6 @@ func (s *Session) Exec(msg string) (*RPCReply, error) {
 	}
 
 	return reply, nil
-
 }
 
 func NewSession(t Transport) *Session {
