@@ -54,7 +54,7 @@ func (t *transportBasicIO) Receive() ([]byte, error) {
 	return t.WaitForBytes([]byte(MSG_SEPERATOR))
 }
 
-func (t *transportBasicIO) WaitForBytes(m []byte) ([]byte, error) {
+func (t *transportBasicIO) WaitForFunc(f func([]byte) (int, error)) ([]byte, error) {
 	var out bytes.Buffer
 	buf := make([]byte, 4096)
 
@@ -62,7 +62,7 @@ func (t *transportBasicIO) WaitForBytes(m []byte) ([]byte, error) {
 		n, err := t.Read(buf)
 
 		if n == 0 {
-			return nil, fmt.Errorf("WaitForBytes read no data.")
+			return nil, fmt.Errorf("WaitForFunc read no data.")
 		}
 
 		if err != nil {
@@ -72,7 +72,11 @@ func (t *transportBasicIO) WaitForBytes(m []byte) ([]byte, error) {
 			break
 		}
 
-		end := bytes.Index(buf, m)
+		end, err := f(buf)
+		if err != nil {
+			return nil, err
+		}
+
 		if end > -1 {
 			out.Write(buf[0:end])
 			return out.Bytes(), nil
@@ -80,11 +84,17 @@ func (t *transportBasicIO) WaitForBytes(m []byte) ([]byte, error) {
 		out.Write(buf[0:n])
 	}
 
-	return nil, fmt.Errorf("WaitForBytes failed")
+	return nil, fmt.Errorf("WaitForFunc failed")
 }
 
-func (t *transportBasicIO) WaitForString(m string) (string, error) {
-	out, err := t.WaitForBytes([]byte(m))
+func (t *transportBasicIO) WaitForBytes(b []byte) ([]byte, error) {
+	return t.WaitForFunc(func(buf []byte) (int, error) {
+		return bytes.Index(buf, b), nil
+	})
+}
+
+func (t *transportBasicIO) WaitForString(s string) (string, error) {
+	out, err := t.WaitForBytes([]byte(s))
 	if out != nil {
 		return string(out), err
 	}
@@ -92,37 +102,18 @@ func (t *transportBasicIO) WaitForString(m string) (string, error) {
 }
 
 func (t *transportBasicIO) WaitForRegexp(re *regexp.Regexp) ([]byte, [][]byte, error) {
-	var out bytes.Buffer
-
-	buf := make([]byte, 4096)
-	for {
-		n, err := t.Read(buf)
-
-		if n == 0 {
-			break // TODO: Handle Error
-		}
-
-		if err != nil {
-			if err != io.EOF {
-				return nil, nil, err
-			}
-			break
-		}
-
+	var matches [][]byte
+	out, err := t.WaitForFunc(func(buf []byte) (int, error) {
 		loc := re.FindSubmatchIndex(buf)
 		if loc != nil {
-			out.Write(buf[0:loc[1]])
-
-			var matches [][]byte
 			for i := 2; i < len(loc); i += 2 {
 				matches = append(matches, buf[loc[i]:loc[i+1]])
 			}
-
-			return out.Bytes(), matches, nil
+			return loc[1], nil
 		}
-		out.Write(buf[0:n])
-	}
-	return nil, nil, fmt.Errorf("WaitForRegexp failed")
+		return -1, nil
+	})
+	return out, matches, err
 }
 
 func (t *transportBasicIO) SendHello(hello *HelloMessage) error {
