@@ -7,10 +7,6 @@ import (
 	"os"
 )
 
-func usage() {
-
-}
-
 func main() {
 	username := flag.String("username", "", "User to login with")
 	password := flag.String("password", "", "Password to login with")
@@ -26,7 +22,7 @@ func main() {
 		flag.Usage()
 	}
 
-	s, err := netconf.NewSessionSSH(flag.Arg(0),
+	s, err := netconf.DialSSH(flag.Arg(0),
 		netconf.SSHConfigPassword(*username, *password))
 	if err != nil {
 		panic(err)

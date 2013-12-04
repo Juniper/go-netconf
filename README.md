@@ -35,7 +35,7 @@ func main() {
 	username := "myuser"
 	password := "mypassword"
 
-	s, err := netconf.NewSessionSSH(flag.Arg(0),
+	s, err := netconf.DialSSH(flag.Arg(0),
 		netconf.SSHConfigPassword(username, password))
 	if err != nil {
 		panic(err)
@@ -55,6 +55,12 @@ func main() {
 }
 
 ```
+
+Documentation
+-------------
+You can view full API documentation at godoc:
+
+http://godoc.org/github.com/Juniper/go-netconf/netconf
 
 License
 -------

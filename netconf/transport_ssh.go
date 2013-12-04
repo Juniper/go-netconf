@@ -1,12 +1,8 @@
 package netconf
 
 import (
-	//"bufio"
-	"bytes"
 	"code.google.com/p/go.crypto/ssh"
-	"encoding/xml"
 	"fmt"
-	"io"
 	"strings"
 )
 
@@ -16,48 +12,9 @@ const (
 )
 
 type TransportSSH struct {
-	Transport
+	transportBasicIO
 	sshConn    *ssh.ClientConn
 	sshSession *ssh.Session
-	sshStdin   io.WriteCloser
-	sshStdout  io.Reader
-}
-
-func (t *TransportSSH) Send(data []byte) error {
-	t.sshStdin.Write(data)
-	t.sshStdin.Write([]byte(MSG_SEPERATOR))
-	t.sshStdin.Write([]byte("\n"))
-	return nil // TODO: Implement error handling!
-}
-
-func (t *TransportSSH) Receive() ([]byte, error) {
-	var out bytes.Buffer
-	buf := make([]byte, 4096)
-
-	for {
-		n, err := t.sshStdout.Read(buf)
-
-		if n == 0 {
-			break // TODO: Handle Error
-		}
-
-		if err != nil {
-			// TODO: Handle Error
-			if err != io.EOF {
-				fmt.Printf("Read error: %s", err)
-			}
-			break
-		}
-
-		end := bytes.Index(buf, []byte(MSG_SEPERATOR))
-		if end > -1 {
-			out.Write(buf[0:end])
-			return out.Bytes(), nil
-		}
-		out.Write(buf[0:n])
-	}
-
-	return nil, nil
 }
 
 func (t *TransportSSH) Close() error {
@@ -76,66 +33,59 @@ func (t *TransportSSH) Close() error {
 	return nil
 }
 
-func (t *TransportSSH) SendHello(hello *HelloMessage) error {
-	val, err := xml.MarshalIndent(hello, "  ", "    ")
-	if err != nil {
-		return err
-	}
-
-	err = t.Send(val)
-	return err
-}
-
-func (t *TransportSSH) ReceiveHello() (*HelloMessage, error) {
-	hello := new(HelloMessage)
-
-	val, err := t.Receive()
-	if err != nil {
-		return hello, err
-	}
-
-	err = xml.Unmarshal([]byte(val), hello)
-	return hello, err
-}
-
-func NewTranportSSH(target string, config *ssh.ClientConfig) (*TransportSSH, error) {
+// Dials and establishes an SSH sessions
+//
+// target can be an IP address (e.g.) 172.16.1.1 which utlizes the default
+// NETCONF over SSH port of 830.  Target can also specify a port with the
+// following format <host>:<port (e.g 172.16.1.1:22)
+//
+// config takes a ssh.ClientConfig connection. See documentation for
+// go.crypto/ssh for documenation.  There is a helper function SSHConfigPassword
+// thar returns a ssh.ClientConfig for simple username/password authentication
+func (t *TransportSSH) Dial(target string, config *ssh.ClientConfig) error {
 	if !strings.Contains(target, ":") {
 		target = fmt.Sprintf("%s:%d", target, SSH_DEFAULT_PORT)
 	}
 
-	conn, err := ssh.Dial("tcp", target, config)
+	var err error
+
+	t.sshConn, err = ssh.Dial("tcp", target, config)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	sess, err := conn.NewSession()
+	t.sshSession, err = t.sshConn.NewSession()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	si, err := sess.StdinPipe()
+	writer, err := t.sshSession.StdinPipe()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	so, err := sess.StdoutPipe()
+	reader, err := t.sshSession.StdoutPipe()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	if err := sess.RequestSubsystem(SSH_NETCONF_SUBSYSTEM); err != nil {
-		return nil, err
+	t.io = NewReadWriteCloser(reader, writer)
+
+	if err := t.sshSession.RequestSubsystem(SSH_NETCONF_SUBSYSTEM); err != nil {
+		return err
 	}
 
-	return &TransportSSH{sshConn: conn, sshSession: sess, sshStdin: si, sshStdout: so}, nil
+	return nil
 }
 
-func NewSessionSSH(target string, config *ssh.ClientConfig) (*Session, error) {
-	t, err := NewTranportSSH(target, config)
+// Create a new NETCONF session using a SSH Transport. See TransportSSH.Dial for arguments.
+func DialSSH(target string, config *ssh.ClientConfig) (*Session, error) {
+	var t TransportSSH
+	err := t.Dial(target, config)
 	if err != nil {
 		return nil, err
 	}
-	return NewSession(t), nil
+	return NewSession(&t), nil
 }
 
 type simpleSSHPassword string
@@ -147,8 +97,6 @@ func (p simpleSSHPassword) Password(user string) (string, error) {
 // SSHConfigPassword is a convience function that takes a username and password
 // and returns a new ssh.ClientConfig setup to pass that username and password.
 func SSHConfigPassword(user string, pass string) *ssh.ClientConfig {
-	type clientPassword string
-
 	return &ssh.ClientConfig{
 		User: user,
 		Auth: []ssh.ClientAuth{
