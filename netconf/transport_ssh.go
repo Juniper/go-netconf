@@ -3,6 +3,7 @@ package netconf
 import (
 	"code.google.com/p/go.crypto/ssh"
 	"fmt"
+	"net"
 	"strings"
 )
 
@@ -54,6 +55,22 @@ func (t *TransportSSH) Dial(target string, config *ssh.ClientConfig) error {
 		return err
 	}
 
+	err = t.setSessionAndPipes()
+	if err != nil {
+		return err
+	}
+
+	err = t.requestNetconfSubsystem()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (t *TransportSSH) setSessionAndPipes() error {
+	var err error
+
 	t.sshSession, err = t.sshConn.NewSession()
 	if err != nil {
 		return err
@@ -71,11 +88,40 @@ func (t *TransportSSH) Dial(target string, config *ssh.ClientConfig) error {
 
 	t.ReadWriteCloser = NewReadWriteCloser(reader, writer)
 
+	return nil
+}
+
+func (t *TransportSSH) requestNetconfSubsystem() error {
 	if err := t.sshSession.RequestSubsystem(SSH_NETCONF_SUBSYSTEM); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+// Create a new NETCONF session using an existing net.Conn.
+func DialSSHWithAddress(conn *net.Conn, config *ssh.ClientConfig) (*Session, error) {
+	var (
+		t   TransportSSH
+		err error
+	)
+
+	t.sshConn, err = ssh.Client(*conn, config)
+	if err != nil {
+		return nil, err
+	}
+
+	err = t.setSessionAndPipes()
+	if err != nil {
+		return nil, err
+	}
+
+	err = t.requestNetconfSubsystem()
+	if err != nil {
+		return nil, err
+	}
+
+	return NewSession(&t), nil
 }
 
 // Create a new NETCONF session using a SSH Transport. See TransportSSH.Dial for arguments.
