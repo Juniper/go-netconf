@@ -14,7 +14,7 @@ const (
 
 type TransportSSH struct {
 	transportBasicIO
-	sshConn    *ssh.ClientConn
+	sshClient  *ssh.Client
 	sshSession *ssh.Session
 }
 
@@ -27,7 +27,7 @@ func (t *TransportSSH) Close() error {
 	}
 
 	// Close the socket
-	if err := t.sshConn.Close(); err != nil {
+	if err := t.sshClient.Close(); err != nil {
 		return err
 	}
 
@@ -50,17 +50,12 @@ func (t *TransportSSH) Dial(target string, config *ssh.ClientConfig) error {
 
 	var err error
 
-	t.sshConn, err = ssh.Dial("tcp", target, config)
+	t.sshClient, err = ssh.Dial("tcp", target, config)
 	if err != nil {
 		return err
 	}
 
-	err = t.setSessionAndPipes()
-	if err != nil {
-		return err
-	}
-
-	err = t.requestNetconfSubsystem()
+	err = t.setupSession()
 	if err != nil {
 		return err
 	}
@@ -68,10 +63,10 @@ func (t *TransportSSH) Dial(target string, config *ssh.ClientConfig) error {
 	return nil
 }
 
-func (t *TransportSSH) setSessionAndPipes() error {
+func (t *TransportSSH) setupSession() error {
 	var err error
 
-	t.sshSession, err = t.sshConn.NewSession()
+	t.sshSession, err = t.sshClient.NewSession()
 	if err != nil {
 		return err
 	}
@@ -88,10 +83,6 @@ func (t *TransportSSH) setSessionAndPipes() error {
 
 	t.ReadWriteCloser = NewReadWriteCloser(reader, writer)
 
-	return nil
-}
-
-func (t *TransportSSH) requestNetconfSubsystem() error {
 	if err := t.sshSession.RequestSubsystem(SSH_NETCONF_SUBSYSTEM); err != nil {
 		return err
 	}
@@ -100,23 +91,20 @@ func (t *TransportSSH) requestNetconfSubsystem() error {
 }
 
 // Create a new NETCONF session using an existing net.Conn.
-func DialSSHWithAddress(conn *net.Conn, config *ssh.ClientConfig) (*Session, error) {
+func NewSSHSession(conn net.Conn, config *ssh.ClientConfig) (*Session, error) {
 	var (
 		t   TransportSSH
 		err error
 	)
 
-	t.sshConn, err = ssh.Client(*conn, config)
+	c, chans, reqs, err := ssh.NewClientConn(conn, conn.RemoteAddr().String(), config)
 	if err != nil {
 		return nil, err
 	}
 
-	err = t.setSessionAndPipes()
-	if err != nil {
-		return nil, err
-	}
+	t.sshClient = ssh.NewClient(c, chans, reqs)
 
-	err = t.requestNetconfSubsystem()
+	err = t.setupSession()
 	if err != nil {
 		return nil, err
 	}
@@ -134,19 +122,13 @@ func DialSSH(target string, config *ssh.ClientConfig) (*Session, error) {
 	return NewSession(&t), nil
 }
 
-type simpleSSHPassword string
-
-func (p simpleSSHPassword) Password(user string) (string, error) {
-	return string(p), nil
-}
-
 // SSHConfigPassword is a convience function that takes a username and password
 // and returns a new ssh.ClientConfig setup to pass that username and password.
 func SSHConfigPassword(user string, pass string) *ssh.ClientConfig {
 	return &ssh.ClientConfig{
 		User: user,
-		Auth: []ssh.ClientAuth{
-			ssh.ClientAuthPassword(simpleSSHPassword(pass)),
+		Auth: []ssh.AuthMethod{
+			ssh.Password(pass),
 		},
 	}
 }
