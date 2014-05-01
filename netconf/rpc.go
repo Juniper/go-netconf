@@ -26,7 +26,7 @@ func NewRpcMessage(op interface{}) *RPCMessage {
 }
 
 func (rm *RPCMessage) String() string {
-	val, err := xml.MarshalIndent(rm, "  ", "    ")
+	val, err := xml.Marshal(rm)
 	if err != nil {
 		return ""
 	}

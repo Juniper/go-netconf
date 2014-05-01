@@ -49,7 +49,7 @@ func (t *transportBasicIO) Receive() ([]byte, error) {
 }
 
 func (t *transportBasicIO) SendHello(hello *HelloMessage) error {
-	val, err := xml.MarshalIndent(hello, "  ", "    ")
+	val, err := xml.Marshal(hello)
 	if err != nil {
 		return err
 	}
