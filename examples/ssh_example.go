@@ -3,8 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/Juniper/go-netconf/netconf"
 	"os"
+
+	"github.com/Juniper/go-netconf/netconf"
 )
 
 func main() {

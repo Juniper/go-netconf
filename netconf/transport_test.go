@@ -133,7 +133,7 @@ func TestSendHello(t *testing.T) {
 	hello := new(HelloMessage)
 	err := xml.Unmarshal([]byte(sentHello), hello)
 	if err != nil {
-		t.Errorf("Unmarshal of clientHello XML failed: %e", err)
+		t.Errorf("Unmarshal of clientHello XML failed: %s", err)
 	}
 
 	for idx, test := range clientHelloTests {
@@ -185,7 +185,7 @@ func TestWaitForRegexp(t *testing.T) {
 	}
 
 	if !bytes.Equal(output, []byte(loginText)) {
-		t.Errorf("WaitForRegexp output text not equal:  Expecting '%d', got '%d", loginText, output)
+		t.Errorf("WaitForRegexp output text not equal:  Expecting '%s', got '%s", loginText, output)
 	}
 }
 
@@ -214,7 +214,7 @@ func TestWaitForString(t *testing.T) {
 	}
 
 	if output != waitforStringResponse {
-		t.Errorf("WaitForRegexp output text not equal:  Expecting '%d', got '%d", waitforStringResponse, output)
+		t.Errorf("WaitForRegexp output text not equal:  Expecting '%s', got '%s", waitforStringResponse, output)
 	}
 }
 

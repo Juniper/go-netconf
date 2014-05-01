@@ -38,7 +38,7 @@ type RPCReply struct {
 	Errors   []RPCError `xml:"rpc-error,omitempty"`
 	Data     string     `xml:",innerxml"`
 	Ok       bool       `xml:",omitempty"`
-	RawReply string     "xml:-"
+	RawReply string     `xml:"-"`
 }
 
 type RPCError struct {
