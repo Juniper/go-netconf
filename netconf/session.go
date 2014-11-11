@@ -2,6 +2,7 @@ package netconf
 
 import (
 	"encoding/xml"
+	"fmt"
 )
 
 type Session struct {
@@ -15,25 +16,29 @@ func (s *Session) Close() error {
 	return s.Transport.Close()
 }
 
-func (s *Session) ExecRPC(rpc *RPCMessage) (*RPCReply, error) {
-	return s.Exec(rpc.String())
-}
+func (s *Session) Exec(methods ...RPCMethod) (*RPCReply, error) {
+	rpc := NewRpcMessage(methods)
 
-func (s *Session) Exec(msg string) (*RPCReply, error) {
-	reply := new(RPCReply)
-
-	err := s.Transport.Send([]byte(msg))
+	request, err := xml.Marshal(rpc)
 	if err != nil {
-		return reply, err
+		return nil, err
 	}
 
-	rawXml, err := s.Transport.Receive()
-	if err != nil {
-		return reply, err
-	}
-	reply.RawReply = string(rawXml)
+	fmt.Printf("%s\n", request)
 
-	if err := xml.Unmarshal(rawXml, reply); err != nil {
+	err = s.Transport.Send(request)
+	if err != nil {
+		return nil, err
+	}
+
+	rawXML, err := s.Transport.Receive()
+	if err != nil {
+		return nil, err
+	}
+	reply := &RPCReply{}
+	reply.RawReply = string(rawXML)
+
+	if err := xml.Unmarshal(rawXML, reply); err != nil {
 		return nil, err
 	}
 

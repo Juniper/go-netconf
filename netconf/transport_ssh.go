@@ -1,8 +1,8 @@
 package netconf
 
 import (
-	"golang.org/x/crypto/ssh"
 	"fmt"
+	"golang.org/x/crypto/ssh"
 	"net"
 	"strings"
 )

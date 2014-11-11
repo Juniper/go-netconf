@@ -1,26 +1,39 @@
 package netconf
 
 import (
+	"bytes"
 	"encoding/xml"
 	"fmt"
 )
 
 type RPCMessage struct {
-	XMLName    xml.Name    `xml:"rpc"`
-	Message_id string      `xml:"message-id,attr,omitempty"`
-	Operation  interface{} `xml:",innerxml"` // TODO: Support multiple operations
+	MessageId string
+	Methods   []RPCMethod
 }
 
-func NewRpcMessage(op interface{}) *RPCMessage {
-	return NewRpcMessageID(uuid(), op)
-}
-
-func (rm *RPCMessage) String() string {
-	val, err := xml.Marshal(rm)
-	if err != nil {
-		return ""
+func NewRpcMessage(methods []RPCMethod) *RPCMessage {
+	return &RPCMessage{
+		MessageId: uuid(),
+		Methods:   methods,
 	}
-	return string(val)
+}
+
+func (m *RPCMessage) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+	var buf bytes.Buffer
+	for _, method := range m.Methods {
+		buf.WriteString(method.MarshalMethod())
+	}
+
+	data := struct {
+		MessageId string `xml:"message-id,attr"`
+		Methods   []byte `xml:",innerxml"`
+	}{
+		m.MessageId,
+		buf.Bytes(),
+	}
+
+	start.Name.Local = "rpc"
+	return e.EncodeElement(data, start)
 }
 
 type RPCReply struct {
@@ -41,24 +54,27 @@ type RPCError struct {
 }
 
 func (re *RPCError) Error() string {
-	return fmt.Sprintf("netconf: rpc %s: '%s'", re.Severity, re.Message)
+	return fmt.Sprintf("netconf rpc [%s] '%s'", re.Severity, re.Message)
 }
 
-func NewRpcMessageID(id string, op interface{}) *RPCMessage {
-	return &RPCMessage{Message_id: id, Operation: op}
+type RPCMethod interface {
+	MarshalMethod() string
 }
 
-func RPCLock(target string) *RPCMessage {
-	op := fmt.Sprintf("<lock><target><%s/></target></lock>", target)
-	return NewRpcMessage(op)
+type RawMethod string
+
+func (r RawMethod) MarshalMethod() string {
+	return string(r)
 }
 
-func RPCUnlock(target string) *RPCMessage {
-	op := fmt.Sprintf("<unlock><target><%s/></target></unlock>", target)
-	return NewRpcMessage(op)
+func MethodLock(target string) RawMethod {
+	return RawMethod(fmt.Sprintf("<lock><target><%s/></target></lock>", target))
 }
 
-func RPCGetConfig(source string) *RPCMessage {
-	op := fmt.Sprintf("<get-config><source><%s/></source></get-config>", source)
-	return NewRpcMessage(op)
+func MethodUnlock(target string) RawMethod {
+	return RawMethod(fmt.Sprintf("<unlock><target><%s/></target></unlock>", target))
+}
+
+func MethodGetConfig(source string) RawMethod {
+	return RawMethod(fmt.Sprintf("<get-config><source><%s/></source></get-config>", source))
 }
