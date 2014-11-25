@@ -84,4 +84,5 @@ The views and conclusions contained in the software and documentation are those 
 
 Authors and Contributors
 ------------------------
-* [Brandon Bennett](http://www.linkedin.com/in/brandonrbennett), Juniper Networks
+* [Brandon Bennett](https://github.com/nemith), Facebook
+* [Charl Matthee](https://github.com/charl)
