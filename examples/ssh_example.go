@@ -3,12 +3,16 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/Juniper/go-netconf/netconf"
 )
 
 func main() {
+	log := log.New(os.Stderr, "", log.LstdFlags)
+	netconf.SetLog(netconf.NewStdLog(log, netconf.LogDebug))
+
 	username := flag.String("username", "", "User to login with")
 	password := flag.String("password", "", "Password to login with")
 	flag.Usage = func() {

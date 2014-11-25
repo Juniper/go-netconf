@@ -2,7 +2,6 @@ package netconf
 
 import (
 	"encoding/xml"
-	"fmt"
 )
 
 type Session struct {
@@ -24,7 +23,7 @@ func (s *Session) Exec(methods ...RPCMethod) (*RPCReply, error) {
 		return nil, err
 	}
 
-	fmt.Printf("%s\n", request)
+	log.Debugf("REQUEST: %s\n", request)
 
 	err = s.Transport.Send(request)
 	if err != nil {
@@ -35,6 +34,8 @@ func (s *Session) Exec(methods ...RPCMethod) (*RPCReply, error) {
 	if err != nil {
 		return nil, err
 	}
+	log.Debugf("REPLY: %s\n", rawXML)
+
 	reply := &RPCReply{}
 	reply.RawReply = string(rawXML)
 
