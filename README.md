@@ -4,15 +4,15 @@ netconf
 [![Build Status](https://travis-ci.org/Juniper/go-netconf.png)](https://travis-ci.org/Juniper/go-netconf)
 
 
-This library is a simple NETCONF client based on [RFC6241](http://tools.ietf.org/html/rfc6241) and [RFC6241](http://tools.ietf.org/html/rfc6242) (although not fully compliant yet).  Today it only supports the SSH transport mechanism (and NETCONF 1.0 SSH framing)
+This library is a simple NETCONF client based on [RFC6241](http://tools.ietf.org/html/rfc6241) and [RFC6241](http://tools.ietf.org/html/rfc6242) (although not fully compliant yet).
 
-> **Note:** this is currently pre-alpha release.  API and features may and probably will change.  Suggestions and pull requests are welcome
+> **Note:** this is currently pre-alpha release.  API and features may and probably will change.  Suggestions and pull requests are welcome.
 
 Features
 --------
-* Support for SSH transport using go.crypto/ssh. (Other transports are planned)
-* Built in RPC support (in progress)
-* Support for custom RPCs
+* Support for SSH transport using go.crypto/ssh. (Other transports are planned).
+* Built in RPC support (in progress).
+* Support for custom RPCs.
 * Independent of XML library.  Free to choose encoding/xml or another third party library to parse the results.
 
 Install
@@ -49,7 +49,7 @@ func main() {
 	fmt.Printf("Session Id: %d\n\n", s.SessionID)
 
 	//reply, err := s.Exec([]byte("<rpc><get-config><source><running/></source></get-config></rpc>"))
-	reply, err := s.ExecRPC(netconf.RPCGetConfig("running"))
+	reply, err := s.Exec(netconf.MethodGetConfig("running"))
 	if err != nil {
 		panic(err)
 	}
