@@ -79,6 +79,6 @@ func MethodGetConfig(source string) RawMethod {
 	return RawMethod(fmt.Sprintf("<get-config><source><%s/></source></get-config>", source))
 }
 
-func MethodRPC(command string) RawMethod {
+func RawRPC(command string) RawMethod {
 	return RawMethod(fmt.Sprintf("%s", command))
 }
