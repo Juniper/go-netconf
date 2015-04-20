@@ -79,6 +79,7 @@ func MethodGetConfig(source string) RawMethod {
 	return RawMethod(fmt.Sprintf("<get-config><source><%s/></source></get-config>", source))
 }
 
+// RawRPC allows any RPC command to be run on the target.
 func RawRPC(command string) RawMethod {
 	return RawMethod(fmt.Sprintf("%s", command))
 }
