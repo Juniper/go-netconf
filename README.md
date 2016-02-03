@@ -4,7 +4,7 @@ netconf
 [![Build Status](https://travis-ci.org/Juniper/go-netconf.png)](https://travis-ci.org/Juniper/go-netconf)
 
 
-This library is a simple NETCONF client based on [RFC6241](http://tools.ietf.org/html/rfc6241) and [RFC6241](http://tools.ietf.org/html/rfc6242) (although not fully compliant yet).
+This library is a simple NETCONF client based on [RFC6241](http://tools.ietf.org/html/rfc6241) and [RFC6242](http://tools.ietf.org/html/rfc6242) (although not fully compliant yet).
 
 > **Note:** this is currently pre-alpha release.  API and features may and probably will change.  Suggestions and pull requests are welcome.
 
