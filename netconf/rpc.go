@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/xml"
 	"fmt"
+	"strings"
 )
 
 type RPCMessage struct {
@@ -54,7 +55,7 @@ type RPCError struct {
 }
 
 func (re *RPCError) Error() string {
-	return fmt.Sprintf("netconf rpc [%s] '%s'", re.Severity, re.Message)
+	return fmt.Sprintf("netconf rpc [%s]: %s", re.Severity, strings.Trim(re.Message, "[\r\n]"))
 }
 
 type RPCMethod interface {
