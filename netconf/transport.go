@@ -80,11 +80,26 @@ func (t *transportBasicIO) WaitForFunc(f func([]byte) (int, error)) ([]byte, err
 	var out bytes.Buffer
 	buf := make([]byte, 4096)
 
+	pos := 0
 	for {
-		n, err := t.Read(buf)
+		n, err := t.Read(buf[pos : pos+(len(buf)/2)])
+		if n > 0 {
+			end, err := f(buf[0 : pos+n])
+			if err != nil {
+				return nil, err
+			}
 
-		if n == 0 {
-			return nil, fmt.Errorf("WaitForFunc read no data.")
+			if end > -1 {
+				out.Write(buf[0:end])
+				return out.Bytes(), nil
+			}
+
+			if pos > 0 {
+				out.Write(buf[0:pos])
+				copy(buf, buf[pos:pos+n])
+			}
+
+			pos = n
 		}
 
 		if err != nil {
@@ -93,17 +108,6 @@ func (t *transportBasicIO) WaitForFunc(f func([]byte) (int, error)) ([]byte, err
 			}
 			break
 		}
-
-		end, err := f(buf)
-		if err != nil {
-			return nil, err
-		}
-
-		if end > -1 {
-			out.Write(buf[0:end])
-			return out.Bytes(), nil
-		}
-		out.Write(buf[0:n])
 	}
 
 	return nil, fmt.Errorf("WaitForFunc failed")
