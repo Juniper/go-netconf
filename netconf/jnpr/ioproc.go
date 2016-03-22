@@ -2,18 +2,21 @@ package jnpr
 
 import (
 	"fmt"
-	"github.com/Juniper/go-netconf/netconf"
 	"regexp"
+
+	"github.com/Juniper/go-netconf/netconf"
 )
 
 const (
-	NETCONF_CMD_CLI   = "junoscript netconf need-trailer"
-	NETCONF_CMD_SHELL = "exec xml-mode netconf need-trailer"
+	netconfCMDCLI   = "junoscript netconf need-trailer"
+	netconfCMDShell = "exec xml-mode netconf need-trailer"
 )
 
 const (
-	CLI_MODE_SHELL = iota
-	CLI_MODE_CLI
+	// CLIModeShell tells the system what mode to open the shell in
+	CLIModeShell = iota
+	// CLIModeCLI sets (no) mode for the CLI
+	CLIModeCLI
 )
 
 type JnprIOProc struct {
@@ -36,9 +39,9 @@ func (j *JnprIOProc) Login(t *netconf.TransportTelnet, username string, password
 
 	switch string(prompt[0]) {
 	case ">":
-		j.cliMode = CLI_MODE_CLI
+		j.cliMode = CLIModeCLI
 	case "%":
-		j.cliMode = CLI_MODE_SHELL
+		j.cliMode = CLIModeShell
 	default:
 		return fmt.Errorf("Cannot determine prompt '%s'", prompt[0])
 	}
@@ -47,12 +50,12 @@ func (j *JnprIOProc) Login(t *netconf.TransportTelnet, username string, password
 
 func (j *JnprIOProc) StartNetconf(t *netconf.TransportTelnet) error {
 	switch j.cliMode {
-	case CLI_MODE_SHELL:
-		t.Writeln([]byte(NETCONF_CMD_SHELL))
+	case CLIModeShell:
+		t.Writeln([]byte(netconfCMDShell))
 		return nil
-	case CLI_MODE_CLI:
-		t.Writeln([]byte(NETCONF_CMD_CLI))
+	case CLIModeCLI:
+		t.Writeln([]byte(netconfCMDCLI))
 		return nil
 	}
-	return fmt.Errorf("Cannot start netconf: Unknown CLI mode '%s'", j.cliMode)
+	return fmt.Errorf("Cannot start netconf: Unknown CLI mode '%d'", j.cliMode)
 }
