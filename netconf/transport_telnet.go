@@ -2,29 +2,37 @@ package netconf
 
 import (
 	"fmt"
-	"github.com/ziutek/telnet"
 	"strings"
 	"time"
+
+	"github.com/ziutek/telnet"
 )
 
 const (
-	TELNET_DEFAULT_PORT = 23
-	TELNET_TIMEOUT      = 10 * time.Second
+	// telnetDefaultPort sets the default port for use by Telnet
+	telnetDefaultPort = 23
+	// telnetTimeout sets the timeout duration for use by Telnet
+	telnetTimeout = 10 * time.Second
 )
 
+// VendorIOProc is the interface used when establishing a telnet Netconf session
 type VendorIOProc interface {
 	Login(*TransportTelnet, string, string) error
 	StartNetconf(*TransportTelnet) error
 }
 
+// TransportTelnet is used to define what makes up a Telnet Transport layer for
+// NetConf
 type TransportTelnet struct {
 	transportBasicIO
 	telnetConn *telnet.Conn
 }
 
+// Dial is used to create a TCP Telnet connection to the remote host returning
+// only an error if it is unable to dial the remote host.
 func (t *TransportTelnet) Dial(target string, username string, password string, vendor VendorIOProc) error {
 	if !strings.Contains(target, ":") {
-		target = fmt.Sprintf("%s:%d", target, TELNET_DEFAULT_PORT)
+		target = fmt.Sprintf("%s:%d", target, telnetDefaultPort)
 	}
 
 	tn, err := telnet.Dial("tcp", target)
@@ -43,6 +51,7 @@ func (t *TransportTelnet) Dial(target string, username string, password string, 
 	return nil
 }
 
+// DialTelnet dials and returns the usable telnet session.
 func DialTelnet(target string, username string, password string, vendor VendorIOProc) (*Session, error) {
 	var t TransportTelnet
 	if err := t.Dial(target, username, password, vendor); err != nil {

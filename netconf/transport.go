@@ -9,19 +9,24 @@ import (
 )
 
 const (
-	MSG_SEPERATOR = "]]>]]>"
+	// msgSeperator is used to separate sent messages via NetConf
+	msgSeperator = "]]>]]>"
 )
 
-var DEFAULT_CAPABILITIES = []string{
+// DefaultCapabilities sets the default capabilities of the client library
+var DefaultCapabilities = []string{
 	"urn:ietf:params:xml:ns:netconf:base:1.0",
 }
 
+// HelloMessage is used when bringing up a NetConf session
 type HelloMessage struct {
 	XMLName      xml.Name `xml:"hello"`
 	Capabilities []string `xml:"capabilities>capability"`
 	SessionID    int      `xml:"session-id,omitempty"`
 }
 
+// Transport interface defines what characterisitics make up a NetConf transport
+// layer object.
 type Transport interface {
 	Send([]byte) error
 	Receive() ([]byte, error)
@@ -39,13 +44,13 @@ type transportBasicIO struct {
 // nessisary framining messages.
 func (t *transportBasicIO) Send(data []byte) error {
 	t.Write(data)
-	t.Write([]byte(MSG_SEPERATOR))
+	t.Write([]byte(msgSeperator))
 	t.Write([]byte("\n"))
 	return nil // TODO: Implement error handling!
 }
 
 func (t *transportBasicIO) Receive() ([]byte, error) {
-	return t.WaitForBytes([]byte(MSG_SEPERATOR))
+	return t.WaitForBytes([]byte(msgSeperator))
 }
 
 func (t *transportBasicIO) SendHello(hello *HelloMessage) error {
@@ -83,6 +88,13 @@ func (t *transportBasicIO) WaitForFunc(f func([]byte) (int, error)) ([]byte, err
 	pos := 0
 	for {
 		n, err := t.Read(buf[pos : pos+(len(buf)/2)])
+		if err != nil {
+			if err != io.EOF {
+				return nil, err
+			}
+			break
+		}
+
 		if n > 0 {
 			end, err := f(buf[0 : pos+n])
 			if err != nil {
@@ -100,13 +112,6 @@ func (t *transportBasicIO) WaitForFunc(f func([]byte) (int, error)) ([]byte, err
 			}
 
 			pos = n
-		}
-
-		if err != nil {
-			if err != io.EOF {
-				return nil, err
-			}
-			break
 		}
 	}
 
@@ -142,11 +147,14 @@ func (t *transportBasicIO) WaitForRegexp(re *regexp.Regexp) ([]byte, [][]byte, e
 	return out, matches, err
 }
 
+// ReadWriteCloser represents a combined IO Reader and WriteCloser
 type ReadWriteCloser struct {
 	io.Reader
 	io.WriteCloser
 }
 
+// NewReadWriteCloser creates a new combined IO Reader and Write Closer from the
+// provided objects
 func NewReadWriteCloser(r io.Reader, w io.WriteCloser) *ReadWriteCloser {
 	return &ReadWriteCloser{r, w}
 }

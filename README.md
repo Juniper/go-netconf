@@ -18,7 +18,7 @@ Features
 Install
 -------
 
-    Requires Go 1.2 or later!
+    Requires Go 1.4 or later!
 
     go get github.com/Juniper/go-netconf/netconf
 

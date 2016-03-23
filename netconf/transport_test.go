@@ -25,7 +25,7 @@ type transportTest struct {
 	transportBasicIO
 }
 
-func NewTransportTest(input string) (*transportTest, *bytes.Buffer) {
+func newTransportTest(input string) (*transportTest, *bytes.Buffer) {
 	testReader := bytes.NewReader([]byte(input))
 	testWriter := new(bytes.Buffer)
 
@@ -80,7 +80,7 @@ var deviceHelloTests = []struct {
 }
 
 func TestReceiveHello(t *testing.T) {
-	tt, _ := NewTransportTest(deviceHello)
+	tt, _ := newTransportTest(deviceHello)
 
 	hello, err := tt.ReceiveHello()
 	if err != nil {
@@ -125,8 +125,8 @@ var clientHelloTests = []struct {
 }
 
 func TestSendHello(t *testing.T) {
-	tt, out := NewTransportTest("")
-	tt.SendHello(&HelloMessage{Capabilities: DEFAULT_CAPABILITIES})
+	tt, out := newTransportTest("")
+	tt.SendHello(&HelloMessage{Capabilities: DefaultCapabilities})
 	sentHello := out.String()
 	out.Reset()
 
@@ -162,12 +162,12 @@ SRX240 (ttyp2)
 Password:
 
 --- JUNOS 12.1X45-D15.5 built 2013-09-19 07:42:15 UTC
-bbennett@SRX240> 
+bbennett@SRX240>
 
 `
 
 func TestWaitForRegexp(t *testing.T) {
-	tt, _ := NewTransportTest(loginText)
+	tt, _ := newTransportTest(loginText)
 
 	var promptRE = regexp.MustCompile(`([>%])\s+`)
 	output, matches, err := tt.WaitForRegexp(promptRE)
@@ -205,7 +205,7 @@ SRX240 (ttyp2)
 `
 
 func TestWaitForString(t *testing.T) {
-	tt, _ := NewTransportTest(loginText)
+	tt, _ := newTransportTest(loginText)
 
 	output, err := tt.WaitForString("Password:")
 
@@ -219,7 +219,7 @@ func TestWaitForString(t *testing.T) {
 }
 
 func TestWaitForBytesEmpty(t *testing.T) {
-	tt, _ := NewTransportTest("")
+	tt, _ := newTransportTest("")
 
 	_, err := tt.WaitForBytes([]byte("Test"))
 	if err == nil {

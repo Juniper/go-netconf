@@ -2,22 +2,28 @@ package netconf
 
 import (
 	"fmt"
-	"golang.org/x/crypto/ssh"
 	"net"
 	"strings"
+
+	"golang.org/x/crypto/ssh"
 )
 
 const (
-	SSH_DEFAULT_PORT      = 830
-	SSH_NETCONF_SUBSYSTEM = "netconf"
+	// sshDefaultPort is the default SSH port used when communicating with NetConf
+	sshDefaultPort = 830
+	// sshNetconfSubsystem sets the SSH subsystem to NetConf
+	sshNetconfSubsystem = "netconf"
 )
 
+// TransportSSH maintains the information necessary to communicate with the
+// remote device over SSH
 type TransportSSH struct {
 	transportBasicIO
 	sshClient  *ssh.Client
 	sshSession *ssh.Session
 }
 
+// Close closes an existing SSH session and socket if they exist.
 func (t *TransportSSH) Close() error {
 	// Close the SSH Session if we have one
 	if t.sshSession != nil {
@@ -34,7 +40,7 @@ func (t *TransportSSH) Close() error {
 	return nil
 }
 
-// Dials and establishes an SSH sessions
+// Dial connects and establishes SSH sessions
 //
 // target can be an IP address (e.g.) 172.16.1.1 which utlizes the default
 // NETCONF over SSH port of 830.  Target can also specify a port with the
@@ -45,7 +51,7 @@ func (t *TransportSSH) Close() error {
 // thar returns a ssh.ClientConfig for simple username/password authentication
 func (t *TransportSSH) Dial(target string, config *ssh.ClientConfig) error {
 	if !strings.Contains(target, ":") {
-		target = fmt.Sprintf("%s:%d", target, SSH_DEFAULT_PORT)
+		target = fmt.Sprintf("%s:%d", target, sshDefaultPort)
 	}
 
 	var err error
@@ -83,14 +89,14 @@ func (t *TransportSSH) setupSession() error {
 
 	t.ReadWriteCloser = NewReadWriteCloser(reader, writer)
 
-	if err := t.sshSession.RequestSubsystem(SSH_NETCONF_SUBSYSTEM); err != nil {
+	if err := t.sshSession.RequestSubsystem(sshNetconfSubsystem); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// Create a new NETCONF session using an existing net.Conn.
+// NewSSHSession creates a new NETCONF session using an existing net.Conn.
 func NewSSHSession(conn net.Conn, config *ssh.ClientConfig) (*Session, error) {
 	var (
 		t   TransportSSH
@@ -112,7 +118,8 @@ func NewSSHSession(conn net.Conn, config *ssh.ClientConfig) (*Session, error) {
 	return NewSession(&t), nil
 }
 
-// Create a new NETCONF session using a SSH Transport. See TransportSSH.Dial for arguments.
+// DialSSH creates a new NETCONF session using a SSH Transport.
+// See TransportSSH.Dial for arguments.
 func DialSSH(target string, config *ssh.ClientConfig) (*Session, error) {
 	var t TransportSSH
 	err := t.Dial(target, config)
