@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"time"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -98,24 +99,12 @@ func (t *TransportSSH) setupSession() error {
 
 // NewSSHSession creates a new NETCONF session using an existing net.Conn.
 func NewSSHSession(conn net.Conn, config *ssh.ClientConfig) (*Session, error) {
-	var (
-		t   TransportSSH
-		err error
-	)
-
-	c, chans, reqs, err := ssh.NewClientConn(conn, conn.RemoteAddr().String(), config)
+	t, err := connToTransport(conn, config)
 	if err != nil {
 		return nil, err
 	}
 
-	t.sshClient = ssh.NewClient(c, chans, reqs)
-
-	err = t.setupSession()
-	if err != nil {
-		return nil, err
-	}
-
-	return NewSession(&t), nil
+	return NewSession(t), nil
 }
 
 // DialSSH creates a new NETCONF session using a SSH Transport.
@@ -129,6 +118,35 @@ func DialSSH(target string, config *ssh.ClientConfig) (*Session, error) {
 	return NewSession(&t), nil
 }
 
+// DialSSHTimeout creates a new NETCONF session using a SSH Transport with timeout.
+// See TransportSSH.Dial for arguments.
+// The timeout value is used for both connection establishment and Read/Write operations.
+func DialSSHTimeout(target string, config *ssh.ClientConfig, timeout time.Duration) (*Session, error) {
+	bareConn, err := net.DialTimeout("tcp", target, timeout)
+	if err != nil {
+		return nil, err
+	}
+
+	conn := &deadlineConn{Conn: bareConn, timeout: timeout}
+	t, err := connToTransport(conn, config)
+	if err != nil {
+		return nil, err
+	}
+
+	go func() {
+		ticker := time.NewTicker(timeout / 2)
+		defer ticker.Stop()
+		for range ticker.C {
+			_, _, err := t.sshClient.Conn.SendRequest("KEEP_ALIVE", true, nil)
+			if err != nil {
+				return
+			}
+		}
+	}()
+
+	return NewSession(t), nil
+}
+
 // SSHConfigPassword is a convience function that takes a username and password
 // and returns a new ssh.ClientConfig setup to pass that username and password.
 func SSHConfigPassword(user string, pass string) *ssh.ClientConfig {
@@ -138,4 +156,36 @@ func SSHConfigPassword(user string, pass string) *ssh.ClientConfig {
 			ssh.Password(pass),
 		},
 	}
+}
+
+func connToTransport(conn net.Conn, config *ssh.ClientConfig) (*TransportSSH, error) {
+	c, chans, reqs, err := ssh.NewClientConn(conn, conn.RemoteAddr().String(), config)
+	if err != nil {
+		return nil, err
+	}
+
+	t := &TransportSSH{}
+	t.sshClient = ssh.NewClient(c, chans, reqs)
+
+	err = t.setupSession()
+	if err != nil {
+		return nil, err
+	}
+
+	return t, nil
+}
+
+type deadlineConn struct {
+	net.Conn
+	timeout time.Duration
+}
+
+func (c *deadlineConn) Read(b []byte) (n int, err error) {
+	c.SetReadDeadline(time.Now().Add(c.timeout))
+	return c.Conn.Read(b)
+}
+
+func (c *deadlineConn) Write(b []byte) (n int, err error) {
+	c.SetWriteDeadline(time.Now().Add(c.timeout))
+	return c.Conn.Write(b)
 }
