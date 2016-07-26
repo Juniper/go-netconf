@@ -1,5 +1,4 @@
-netconf
-=======
+# netconf
 
 [![Build Status](https://travis-ci.org/Juniper/go-netconf.png)](https://travis-ci.org/Juniper/go-netconf)
 
@@ -8,64 +7,23 @@ This library is a simple NETCONF client based on [RFC6241](http://tools.ietf.org
 
 > **Note:** this is currently pre-alpha release.  API and features may and probably will change.  Suggestions and pull requests are welcome.
 
-Features
---------
+## Features
 * Support for SSH transport using go.crypto/ssh. (Other transports are planned).
 * Built in RPC support (in progress).
 * Support for custom RPCs.
 * Independent of XML library.  Free to choose encoding/xml or another third party library to parse the results.
 
-Install
--------
+## Install
+* Requires Go 1.4 or later!
+* `go get github.com/Juniper/go-netconf/netconf`
 
-    Requires Go 1.4 or later!
+## Example
+* See examples in `examples/` directory.
 
-    go get github.com/Juniper/go-netconf/netconf
+## Documentation
+You can view full API documentation at GoDoc: http://godoc.org/github.com/Juniper/go-netconf/netconf
 
-Example
--------
-```Go
-package main
-
-import (
-	"code.google.com/p/go.crypto/ssh"
-	"fmt"
-	"github.com/Juniper/go-netconf/netconf"
-)
-
-func main() {
-	username := "myuser"
-	password := "mypassword"
-
-	s, err := netconf.DialSSH(flag.Arg(0),
-		netconf.SSHConfigPassword(username, password))
-	if err != nil {
-		panic(err)
-	}
-
-	defer s.Close()
-
-	fmt.Printf("Server Capabilities: '%+v'\n", s.ServerCapabilities)
-	fmt.Printf("Session Id: %d\n\n", s.SessionID)
-
-	//reply, err := s.Exec([]byte("<rpc><get-config><source><running/></source></get-config></rpc>"))
-	reply, err := s.Exec(netconf.MethodGetConfig("running"))
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("Reply: %+v", reply)
-}
-
-```
-
-Documentation
--------------
-You can view full API documentation at GoDoc:
-
-http://godoc.org/github.com/Juniper/go-netconf/netconf
-
-License
--------
+## License
 (BSD 2)
 
 Copyright © 2013, Juniper Networks
