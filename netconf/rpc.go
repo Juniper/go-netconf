@@ -35,6 +35,7 @@ func (m *RPCMessage) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 		buf.Bytes(),
 	}
 
+	// Wrap the raw XML (data) into <rpc>...</rpc> tags
 	start.Name.Local = "rpc"
 	return e.EncodeElement(data, start)
 }
