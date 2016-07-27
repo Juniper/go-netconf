@@ -26,6 +26,9 @@ func (s *Session) Exec(methods ...RPCMethod) (*RPCReply, error) {
 		return nil, err
 	}
 
+	header := []byte(xml.Header)
+	request = append(header, request...)
+
 	log.Debugf("REQUEST: %s\n", request)
 
 	err = s.Transport.Send(request)
