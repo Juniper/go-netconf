@@ -2,13 +2,22 @@ package main
 
 import (
 	"fmt"
+	"golang.org/x/crypto/ssh"
 	"log"
 
 	"github.com/Juniper/go-netconf/netconf"
 )
 
 func main() {
-	s, err := netconf.DialSSH("1.1.1.1", netconf.SSHConfigPassword("myuser", "mypass"))
+	sshConfig := &ssh.ClientConfig{
+		Config: ssh.Config{
+			Ciphers: []string{"aes128-cbc", "hmac-sha1"},
+		},
+		User: "myuser",
+		Auth: []ssh.AuthMethod{ssh.Password("mypass")},
+	}
+
+	s, err := netconf.DialSSH("1.1.1.1", sshConfig)
 
 	if err != nil {
 		log.Fatal(err)
