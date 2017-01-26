@@ -29,9 +29,11 @@ func (m *RPCMessage) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 
 	data := struct {
 		MessageID string `xml:"message-id,attr"`
+		Xmlns     string `xml:"xmlns,attr"`
 		Methods   []byte `xml:",innerxml"`
 	}{
 		m.MessageID,
+		"urn:ietf:params:xml:ns:netconf:base:1.0",
 		buf.Bytes(),
 	}
 
