@@ -20,7 +20,7 @@ var DefaultCapabilities = []string{
 
 // HelloMessage is used when bringing up a NetConf session
 type HelloMessage struct {
-	XMLName      xml.Name `xml:"hello"`
+	XMLName      xml.Name `xml:"urn:ietf:params:xml:ns:netconf:base:1.0 hello"`
 	Capabilities []string `xml:"capabilities>capability"`
 	SessionID    int      `xml:"session-id,omitempty"`
 }
