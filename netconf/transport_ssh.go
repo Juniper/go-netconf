@@ -160,6 +160,7 @@ func SSHConfigPassword(user string, pass string) *ssh.ClientConfig {
 		Auth: []ssh.AuthMethod{
 			ssh.Password(pass),
 		},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 }
 
