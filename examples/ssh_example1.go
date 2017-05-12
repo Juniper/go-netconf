@@ -11,7 +11,7 @@ import (
 func main() {
 	sshConfig := &ssh.ClientConfig{
 		User: "root",
-		Auth: []ssh.AuthMethod{ssh.Password("r00tme")},
+		Auth: []ssh.AuthMethod{ssh.Password("xxx")},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 
