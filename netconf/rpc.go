@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/xml"
 	"fmt"
+	"strings"
 )
 
 // RPCMessage represents an RPC Message to be sent.
@@ -61,7 +62,7 @@ type RPCError struct {
 
 // Error generates a string representation of the provided RPC error
 func (re *RPCError) Error() string {
-	return fmt.Sprintf("netconf rpc [%s] '%s'", re.Severity, re.Message)
+	return fmt.Sprintf("netconf rpc [%s]: %s", re.Severity, strings.Trim(re.Message, "[\r\n]"))
 }
 
 // RPCMethod defines the interface for creating an RPC method.
@@ -90,4 +91,9 @@ func MethodUnlock(target string) RawMethod {
 // MethodGetConfig files a Netconf get-config source request with the remote host
 func MethodGetConfig(source string) RawMethod {
 	return RawMethod(fmt.Sprintf("<get-config><source><%s/></source></get-config>", source))
+}
+
+// RawRPC allows any RPC command to be run on the target.
+func RawRPC(command string) RawMethod {
+	return RawMethod(fmt.Sprintf("%s", command))
 }
