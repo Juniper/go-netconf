@@ -2,8 +2,10 @@ package netconf
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/xml"
 	"fmt"
+	"io"
 )
 
 // RPCMessage represents an RPC Message to be sent.
@@ -90,4 +92,13 @@ func MethodUnlock(target string) RawMethod {
 // MethodGetConfig files a NETCONF get-config source request with the remote host
 func MethodGetConfig(source string) RawMethod {
 	return RawMethod(fmt.Sprintf("<get-config><source><%s/></source></get-config>", source))
+}
+
+// uuid generates a "good enough" uuid without adding external dependencies
+func uuid() string {
+	b := make([]byte, 16)
+	io.ReadFull(rand.Reader, b)
+	b[6] = (b[6] & 0x0f) | 0x40
+	b[8] = (b[8] & 0x3f) | 0x80
+	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
 }
