@@ -11,7 +11,7 @@ matrix:
     allow_failures:
         - go: tip
 
-install: (cd netconf; go get -d -v ./... && go build -v ./...)
+install: go get -d -v -t ./... && go build -v ./...
 
 script:
   - test -z $(gofmt -s -l $GO_FILES)         # Fail if a .go file hasn't been formatted with gofmt
