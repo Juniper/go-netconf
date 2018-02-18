@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	"golang.org/x/crypto/ssh"
 	"log"
+
+	"golang.org/x/crypto/ssh"
 
 	"github.com/Juniper/go-netconf/netconf"
 )
