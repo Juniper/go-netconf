@@ -1,5 +1,8 @@
 # netconf
 
+
+[![GoDoc](https://godoc.org/github.com/Juniper/go-netconf/netconf?status.svg)](https://godoc.org/github.com/Juniper/go-netconf/netconf)
+[![Report Card](https://goreportcard.com/badge/github.com/Juniper/go-netconf/netconf)](https://goreportcard.com/report/github.com/Juniper/go-netconf/netconf)
 [![Build Status](https://travis-ci.org/Juniper/go-netconf.png)](https://travis-ci.org/Juniper/go-netconf)
 
 
