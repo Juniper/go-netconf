@@ -15,14 +15,14 @@ const (
 	telnetTimeout = 10 * time.Second
 )
 
-// VendorIOProc is the interface used when establishing a telnet Netconf session
+// VendorIOProc is the interface used when establishing a telnet NETCONF session
 type VendorIOProc interface {
 	Login(*TransportTelnet, string, string) error
 	StartNetconf(*TransportTelnet) error
 }
 
 // TransportTelnet is used to define what makes up a Telnet Transport layer for
-// NetConf
+// NETCONF
 type TransportTelnet struct {
 	transportBasicIO
 	telnetConn *telnet.Conn

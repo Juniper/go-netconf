@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	// msgSeperator is used to separate sent messages via NetConf
+	// msgSeperator is used to separate sent messages via NETCONF
 	msgSeperator = "]]>]]>"
 )
 
@@ -18,14 +18,14 @@ var DefaultCapabilities = []string{
 	"urn:ietf:params:xml:ns:netconf:base:1.0",
 }
 
-// HelloMessage is used when bringing up a NetConf session
+// HelloMessage is used when bringing up a NETCONF session
 type HelloMessage struct {
 	XMLName      xml.Name `xml:"hello"`
 	Capabilities []string `xml:"capabilities>capability"`
 	SessionID    int      `xml:"session-id,omitempty"`
 }
 
-// Transport interface defines what characterisitics make up a NetConf transport
+// Transport interface defines what characterisitics make up a NETCONF transport
 // layer object.
 type Transport interface {
 	Send([]byte) error
@@ -40,7 +40,7 @@ type transportBasicIO struct {
 	chunkedFraming bool
 }
 
-// Sends a well formated netconf rpc message as a slice of bytes adding on the
+// Sends a well formated NETCONF rpc message as a slice of bytes adding on the
 // nessisary framining messages.
 func (t *transportBasicIO) Send(data []byte) error {
 	t.Write(data)

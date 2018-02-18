@@ -15,9 +15,10 @@ import (
 )
 
 const (
-	// sshDefaultPort is the default SSH port used when communicating with NetConf
+	// sshDefaultPort is the default SSH port used when communicating with
+	// NETCONF
 	sshDefaultPort = 830
-	// sshNetconfSubsystem sets the SSH subsystem to NetConf
+	// sshNetconfSubsystem sets the SSH subsystem to NETCONF
 	sshNetconfSubsystem = "netconf"
 )
 
