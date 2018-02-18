@@ -11,14 +11,12 @@ import (
 
 func main() {
 	sshConfig := &ssh.ClientConfig{
-		Config: ssh.Config{
-			Ciphers: []string{"aes128-cbc", "hmac-sha1"},
-		},
-		User: "myuser",
-		Auth: []ssh.AuthMethod{ssh.Password("mypass")},
+		User: "root",
+		Auth: []ssh.AuthMethod{ssh.Password("xxx")},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 
-	s, err := netconf.DialSSH("1.1.1.1", sshConfig)
+	s, err := netconf.DialSSH("172.16.240.189", sshConfig)
 
 	if err != nil {
 		log.Fatal(err)

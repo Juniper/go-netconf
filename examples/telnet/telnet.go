@@ -20,7 +20,7 @@ func main() {
 
 	flag.Parse()
 
-	if flag.NArg() == 0 {
+	if flag.NFlag() == 0 {
 		flag.Usage()
 	}
 

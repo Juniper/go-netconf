@@ -10,11 +10,9 @@ import (
 
 func main() {
 	sshConfig := &ssh.ClientConfig{
-		Config: ssh.Config{
-			Ciphers: []string{"aes128-cbc", "hmac-sha1"},
-		},
 		User: "myuser",
 		Auth: []ssh.AuthMethod{ssh.Password("mypass")},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 
 	s, err := netconf.DialSSH("1.1.1.1", sshConfig)
