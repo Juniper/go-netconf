@@ -39,21 +39,9 @@ func (s *Session) Exec(methods ...RPCMethod) (*RPCReply, error) {
 		return nil, err
 	}
 
-	reply := &RPCReply{}
-	reply.RawReply = string(rawXML)
-
-	if err := xml.Unmarshal(rawXML, reply); err != nil {
+	reply, err := NewRPCReply(rawXML, s.ErrOnWarning)
+	if err != nil {
 		return nil, err
-	}
-
-	if reply.Errors != nil {
-		// We have errors, lets see if it's a warning or an error.
-		for _, rpcErr := range reply.Errors {
-			if rpcErr.Severity == "error" || s.ErrOnWarning {
-				return reply, &rpcErr
-			}
-		}
-
 	}
 
 	return reply, nil

@@ -89,6 +89,89 @@ func TestUUIDChar(t *testing.T) {
 	for _, v := range u {
 		if valid(int(v)) == false {
 			t.Errorf("invalid char %s", string(v))
+
+		}
+	}
+}
+
+var RPCReplytests = []struct {
+	rawXML   string
+	reply_ok bool
+}{
+	{
+		`
+<rpc-reply xmlns="urn:ietf:params:xml:ns:netconf:base:1.0" xmlns:junos="http://xml.juniper.net/junos/15.1F4/junos">
+<commit-results>
+</commit-results>
+<ok/>
+</rpc-reply>`,
+		false,
+	},
+	{
+		`
+<rpc-reply xmlns="urn:ietf:params:xml:ns:netconf:base:1.0" xmlns:junos="http://xml.juniper.net/junos/15.1F4/junos">
+<commit-results>
+<rpc-error>
+<error-type>application</error-type>
+<error-tag>invalid-value</error-tag>
+<error-severity>error</error-severity>
+<error-path>[edit]</error-path>
+<error-message>mgd: Missing mandatory statement: 'root-authentication'</error-message>
+<error-info>
+<bad-element>system</bad-element>
+</error-info>
+</rpc-error>
+<rpc-error>
+<error-type>protocol</error-type>
+<error-tag>operation-failed</error-tag>
+<error-severity>error</error-severity>
+<error-message>
+configuration check-out failed: (missing mandatory statements)
+</error-message>
+</rpc-error>
+</commit-results>
+</rpc-reply>`,
+		false,
+	},
+	{
+		`
+<rpc-reply xmlns="urn:ietf:params:xml:ns:netconf:base:1.0" xmlns:junos="http://xml.juniper.net/junos/16.1R3/junos">
+<commit-results>
+<rpc-error>
+<error-severity>warning</error-severity>
+<error-path>[edit protocols]</error-path>
+<error-message>mgd: requires 'mpls' license</error-message>
+<error-info>
+<bad-element>mpls</bad-element>
+</error-info>
+</rpc-error>
+<rpc-error>
+<error-severity>warning</error-severity>
+<error-path>[edit protocols]</error-path>
+<error-message>mgd: requires 'bgp' license</error-message>
+<error-info>
+<bad-element>bgp</bad-element>
+</error-info>
+</rpc-error>
+<routing-engine junos:style="normal">
+<name>fpc0</name>
+<commit-check-success/>
+</routing-engine>
+</commit-results>
+<ok/>
+</rpc-reply>`,
+		false,
+	},
+}
+
+func TestNewRPCReply(t *testing.T) {
+	for _, tc := range RPCReplytests {
+		reply, err := NewRPCReply([]byte(tc.rawXML), false)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if reply.RawReply != tc.rawXML {
+			t.Errorf("NewRPCReply(%q) did not set RawReply to input, got %q", tc.rawXML, reply.RawReply)
 		}
 	}
 }
