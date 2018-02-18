@@ -17,7 +17,7 @@ type RPCMessage struct {
 // NewRPCMessage generates a new RPC Message structure with the provided methods
 func NewRPCMessage(methods []RPCMethod) *RPCMessage {
 	return &RPCMessage{
-		MessageID: uuid(),
+		MessageID: msgID(),
 		Methods:   methods,
 	}
 }
@@ -114,6 +114,8 @@ func MethodUnlock(target string) RawMethod {
 func MethodGetConfig(source string) RawMethod {
 	return RawMethod(fmt.Sprintf("<get-config><source><%s/></source></get-config>", source))
 }
+
+var msgID = uuid
 
 // uuid generates a "good enough" uuid without adding external dependencies
 func uuid() string {
