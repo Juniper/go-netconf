@@ -1,8 +1,61 @@
 package netconf
 
 import (
+	"bytes"
+	"encoding/xml"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 )
+
+func TestRPCMessage(t *testing.T) {
+	origMsgID := msgID
+	msgID = func() string { return "00000000-0000-0000-0000-000000000000" }
+	defer func() { msgID = origMsgID }()
+
+	tt := []struct {
+		name    string
+		methods []RPCMethod
+		msg     *RPCMessage
+		xml     []byte
+	}{
+		{
+			name:    "getconfig",
+			methods: []RPCMethod{MethodGetConfig("running")},
+			msg: &RPCMessage{
+				Methods: []RPCMethod{RawMethod("<get-config><source><running/></source></get-config>")},
+			},
+			xml: []byte(`<rpc message-id="00000000-0000-0000-0000-000000000000" xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"><get-config><source><running/></source></get-config></rpc>`),
+		},
+		{
+			name:    "empty",
+			methods: []RPCMethod{},
+			msg: &RPCMessage{
+				Methods: []RPCMethod{},
+			},
+			xml: []byte(`<rpc message-id="00000000-0000-0000-0000-000000000000" xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"></rpc>`),
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			msg := NewRPCMessage(tc.methods)
+			if !cmp.Equal(msg, tc.msg, cmpopts.IgnoreFields(RPCMessage{}, "MessageID")) {
+				t.Errorf("unexpected rpc message:\n%s", cmp.Diff(tc.msg, msg))
+			}
+
+			xmlOut, err := xml.Marshal(msg)
+			if err != nil {
+				t.Fatalf("failed to marshal xml: %v", err)
+			}
+
+			if !bytes.Equal(xmlOut, tc.xml) {
+				t.Fatalf("unexpected xml output (want %q, got %q)", tc.xml, xmlOut)
+			}
+		})
+	}
+}
 
 func TestRPCErrorError(t *testing.T) {
 	rpcErr := RPCError{
