@@ -3,9 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
+
 	"github.com/Juniper/go-netconf/netconf"
 	"github.com/Juniper/go-netconf/netconf/jnpr"
-	"os"
 )
 
 func main() {
@@ -19,7 +20,7 @@ func main() {
 
 	flag.Parse()
 
-	if flag.NArg() == 0 {
+	if flag.NFlag() == 0 {
 		flag.Usage()
 	}
 
@@ -33,8 +34,7 @@ func main() {
 	fmt.Printf("Server Capabilities: '%+v'\n", s.ServerCapabilities)
 	fmt.Printf("Session Id: %d\n\n", s.SessionID)
 
-	//reply, err := s.Exec([]byte("<rpc><get-config><source><running/></source></get-config></rpc>"))
-	reply, err := s.ExecRPC(netconf.RPCGetConfig("running"))
+	reply, err := s.Exec(netconf.MethodGetConfig("running"))
 	if err != nil {
 		panic(err)
 	}
