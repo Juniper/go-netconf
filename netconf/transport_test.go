@@ -6,6 +6,8 @@ import (
 	"io"
 	"regexp"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 type nilCloser struct {
@@ -29,14 +31,22 @@ func newTransportTest(input string) (*transportTest, *bytes.Buffer) {
 	testReader := bytes.NewReader([]byte(input))
 	testWriter := new(bytes.Buffer)
 
-	var tt transportTest
-	tt.ReadWriteCloser = newNilCloser(testReader, testWriter)
-	return &tt, testWriter
+	var t transportTest
+	t.ReadWriteCloser = newNilCloser(testReader, testWriter)
+	return &t, testWriter
 }
 
-var deviceHello = `<!-- No zombies were killed during the creation of this user interface -->
+func TestReceiveHello(t *testing.T) {
+	tt := []struct {
+		name     string
+		input    string
+		expected *HelloMessage
+	}{
+		{
+			name: "juniperHello",
+			input: `<!-- No zombies were killed during the creation of this user interface -->
 <!-- user bbennett, class j-super-user -->
-<hello>
+<hello xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
   <capabilities>
     <capability>urn:ietf:params:xml:ns:netconf:base:1.0</capability>
     <capability>urn:ietf:params:xml:ns:netconf:capability:candidate:1.0</capability>
@@ -48,100 +58,65 @@ var deviceHello = `<!-- No zombies were killed during the creation of this user 
   </capabilities>
   <session-id>19313</session-id>
 </hello>
-]]>]]>
-`
-
-var deviceHelloTests = []struct {
-	Name     string
-	TestFunc func(*HelloMessage) interface{}
-	Expected interface{}
-}{
-	{
-		Name: "SessionID match",
-		TestFunc: func(h *HelloMessage) interface{} {
-			return h.SessionID
+]]>]]>`,
+			expected: &HelloMessage{
+				XMLName:   xml.Name{Space: "urn:ietf:params:xml:ns:netconf:base:1.0", Local: "hello"},
+				SessionID: 19313,
+				Capabilities: []string{
+					"urn:ietf:params:xml:ns:netconf:base:1.0",
+					"urn:ietf:params:xml:ns:netconf:capability:candidate:1.0",
+					"urn:ietf:params:xml:ns:netconf:capability:confirmed-commit:1.0",
+					"urn:ietf:params:xml:ns:netconf:capability:validate:1.0",
+					"urn:ietf:params:xml:ns:netconf:capability:url:1.0?protocol=http,ftp,file",
+					"http://xml.juniper.net/netconf/junos/1.0",
+					"http://xml.juniper.net/dmi/system/1.0",
+				},
+			},
 		},
-		Expected: 19313,
-	},
-	{
-		Name: "Capability length",
-		TestFunc: func(h *HelloMessage) interface{} {
-			return len(h.Capabilities)
-		},
-		Expected: 7,
-	},
-	{
-		Name: "Capability #0",
-		TestFunc: func(h *HelloMessage) interface{} {
-			return h.Capabilities[0]
-		},
-		Expected: "urn:ietf:params:xml:ns:netconf:base:1.0",
-	},
-}
-
-func TestReceiveHello(t *testing.T) {
-	tt, _ := newTransportTest(deviceHello)
-
-	hello, err := tt.ReceiveHello()
-	if err != nil {
-		t.Errorf("Hello read Error: %s", err)
 	}
 
-	for idx, test := range deviceHelloTests {
-		result := test.TestFunc(hello)
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
 
-		if result != test.Expected {
-			t.Errorf("#%d: ReceiveHello(%s): Expected: '%#v', Got '%#v'", idx, test.Name, test.Expected, result)
-		}
+			trans, _ := newTransportTest(tc.input)
+
+			hello, err := trans.ReceiveHello()
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+
+			if !cmp.Equal(hello, tc.expected) {
+				t.Errorf("unexpected hello message%s", cmp.Diff(hello, tc.expected))
+			}
+		})
 	}
-}
-
-var clientHelloTests = []struct {
-	Name     string
-	TestFunc func(*HelloMessage) interface{}
-	Expected interface{}
-}{
-	{
-		Name: "SessionID Nil",
-		TestFunc: func(h *HelloMessage) interface{} {
-			return h.SessionID
-		},
-		Expected: 0,
-	},
-	{
-		Name: "Capability length",
-		TestFunc: func(h *HelloMessage) interface{} {
-			return len(h.Capabilities)
-		},
-		Expected: 1,
-	},
-	{
-		Name: "Capability #0",
-		TestFunc: func(h *HelloMessage) interface{} {
-			return h.Capabilities[0]
-		},
-		Expected: "urn:ietf:params:xml:ns:netconf:base:1.0",
-	},
 }
 
 func TestSendHello(t *testing.T) {
-	tt, out := newTransportTest("")
-	tt.SendHello(&HelloMessage{Capabilities: DefaultCapabilities})
-	sentHello := out.String()
-	out.Reset()
-
-	hello := new(HelloMessage)
-	err := xml.Unmarshal([]byte(sentHello), hello)
-	if err != nil {
-		t.Errorf("Unmarshal of clientHello XML failed: %s", err)
+	tt := []struct {
+		name     string
+		input    *HelloMessage
+		expected string
+	}{
+		{
+			name:  "default",
+			input: &HelloMessage{Capabilities: DefaultCapabilities},
+			expected: `<?xml version="1.0" encoding="UTF-8"?>
+<hello xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"><capabilities><capability>urn:ietf:params:netconf:base:1.0</capability></capabilities></hello>]]>]]>
+`,
+		},
 	}
 
-	for idx, test := range clientHelloTests {
-		result := test.TestFunc(hello)
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			trans, out := newTransportTest("")
+			trans.SendHello(tc.input)
+			rawHello := out.String()
 
-		if result != test.Expected {
-			t.Errorf("#%d: SendHello(%s): Expected: '%#v', Got '%#v'", idx, test.Name, test.Expected, result)
-		}
+			if rawHello != tc.expected {
+				t.Errorf("unexpected result: (want %q, got %q)", tc.expected, rawHello)
+			}
+		})
 	}
 }
 
