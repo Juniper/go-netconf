@@ -20,7 +20,7 @@ func NewRPCMessage(methods []RPCMethod) *RPCMessage {
 	}
 }
 
-// MarshalXML marshals the NetConf XML data
+// MarshalXML marshals the NETCONF XML data
 func (m *RPCMessage) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	var buf bytes.Buffer
 	for _, method := range m.Methods {
@@ -77,17 +77,17 @@ func (r RawMethod) MarshalMethod() string {
 	return string(r)
 }
 
-// MethodLock files a Netconf lock target request with the remote host
+// MethodLock files a NETCONF lock target request with the remote host
 func MethodLock(target string) RawMethod {
 	return RawMethod(fmt.Sprintf("<lock><target><%s/></target></lock>", target))
 }
 
-// MethodUnlock files a Netconf unlock target request with the remote host
+// MethodUnlock files a NETCONF unlock target request with the remote host
 func MethodUnlock(target string) RawMethod {
 	return RawMethod(fmt.Sprintf("<unlock><target><%s/></target></unlock>", target))
 }
 
-// MethodGetConfig files a Netconf get-config source request with the remote host
+// MethodGetConfig files a NETCONF get-config source request with the remote host
 func MethodGetConfig(source string) RawMethod {
 	return RawMethod(fmt.Sprintf("<get-config><source><%s/></source></get-config>", source))
 }

@@ -4,7 +4,7 @@ import (
 	"encoding/xml"
 )
 
-// Session defines the necessary components for a Netconf session
+// Session defines the necessary components for a NETCONF session
 type Session struct {
 	Transport          Transport
 	SessionID          int
@@ -62,7 +62,7 @@ func (s *Session) Exec(methods ...RPCMethod) (*RPCReply, error) {
 	return reply, nil
 }
 
-// NewSession creates a new NetConf session using the provided transport layer.
+// NewSession creates a new NETCONF session using the provided transport layer.
 func NewSession(t Transport) *Session {
 	s := new(Session)
 	s.Transport = t
