@@ -48,3 +48,4 @@ Authors and Contributors
 * [Brandon Bennett](https://github.com/nemith), Facebook
 * [Charl Matthee](https://github.com/charl)
 * [Jade Auer](https://github.com/jda)
+* [Wayne Tucker](https://github.com/wtucker)
