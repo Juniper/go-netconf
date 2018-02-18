@@ -39,7 +39,7 @@ func (s *Session) Exec(methods ...RPCMethod) (*RPCReply, error) {
 		return nil, err
 	}
 
-	reply, err := NewRPCReply(rawXML, s.ErrOnWarning)
+	reply, err := newRPCReply(rawXML, s.ErrOnWarning)
 	if err != nil {
 		return nil, err
 	}

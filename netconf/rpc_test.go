@@ -164,14 +164,14 @@ configuration check-out failed: (missing mandatory statements)
 	},
 }
 
-func TestNewRPCReply(t *testing.T) {
+func TestnewRPCReply(t *testing.T) {
 	for _, tc := range RPCReplytests {
-		reply, err := NewRPCReply([]byte(tc.rawXML), false)
+		reply, err := newRPCReply([]byte(tc.rawXML), false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 		if reply.RawReply != tc.rawXML {
-			t.Errorf("NewRPCReply(%q) did not set RawReply to input, got %q", tc.rawXML, reply.RawReply)
+			t.Errorf("newRPCReply(%q) did not set RawReply to input, got %q", tc.rawXML, reply.RawReply)
 		}
 	}
 }

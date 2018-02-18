@@ -53,7 +53,7 @@ type RPCReply struct {
 	RawReply string     `xml:"-"`
 }
 
-func NewRPCReply(rawXML []byte, ErrOnWarning bool) (*RPCReply, error) {
+func newRPCReply(rawXML []byte, ErrOnWarning bool) (*RPCReply, error) {
 	reply := &RPCReply{}
 	reply.RawReply = string(rawXML)
 
@@ -61,18 +61,15 @@ func NewRPCReply(rawXML []byte, ErrOnWarning bool) (*RPCReply, error) {
 		return nil, err
 	}
 
-	return reply, reply.RaiseErrors(ErrOnWarning)
-}
-
-func (reply *RPCReply) RaiseErrors(ErrOnWarning bool) error {
 	if reply.Errors != nil {
 		for _, rpcErr := range reply.Errors {
 			if rpcErr.Severity == "error" || ErrOnWarning {
-				return &rpcErr
+				return reply, &rpcErr
 			}
 		}
 	}
-	return nil
+
+	return reply, nil
 }
 
 // RPCError defines an error reply to a RPC request
