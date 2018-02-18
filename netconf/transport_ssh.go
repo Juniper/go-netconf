@@ -40,11 +40,7 @@ func (t *TransportSSH) Close() error {
 	}
 
 	// Close the socket
-	if err := t.sshClient.Close(); err != nil {
-		return err
-	}
-
-	return nil
+	return t.sshClient.Close()
 }
 
 // Dial connects and establishes SSH sessions
@@ -95,12 +91,7 @@ func (t *TransportSSH) setupSession() error {
 	}
 
 	t.ReadWriteCloser = NewReadWriteCloser(reader, writer)
-
-	if err := t.sshSession.RequestSubsystem(sshNetconfSubsystem); err != nil {
-		return err
-	}
-
-	return nil
+	return t.sshSession.RequestSubsystem(sshNetconfSubsystem)
 }
 
 // NewSSHSession creates a new NETCONF session using an existing net.Conn.
