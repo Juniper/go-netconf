@@ -95,8 +95,8 @@ func TestUUIDChar(t *testing.T) {
 }
 
 var RPCReplytests = []struct {
-	rawXML   string
-	reply_ok bool
+	rawXML  string
+	replyOk bool
 }{
 	{
 		`
@@ -164,7 +164,7 @@ configuration check-out failed: (missing mandatory statements)
 	},
 }
 
-func TestnewRPCReply(t *testing.T) {
+func TestNewRPCReply(t *testing.T) {
 	for _, tc := range RPCReplytests {
 		reply, err := newRPCReply([]byte(tc.rawXML), false)
 		if err != nil {
