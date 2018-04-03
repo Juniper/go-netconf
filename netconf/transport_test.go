@@ -110,7 +110,7 @@ func TestSendHello(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			trans, out := newTransportTest("")
-			trans.SendHello(tc.input)
+			trans.SendHello(tc.input, true)
 			rawHello := out.String()
 
 			if rawHello != tc.expected {
