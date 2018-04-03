@@ -32,7 +32,7 @@ type Transport interface {
 	Receive() ([]byte, error)
 	Close() error
 	ReceiveHello() (*HelloMessage, error)
-	SendHello(*HelloMessage) error
+	SendHello(*HelloMessage, bool) error
 }
 
 type transportBasicIO struct {
@@ -57,13 +57,20 @@ func (t *transportBasicIO) Receive() ([]byte, error) {
 	return t.WaitForBytes([]byte(msgSeperator))
 }
 
-func (t *transportBasicIO) SendHello(hello *HelloMessage) error {
+func (t *transportBasicIO) SendHello(hello *HelloMessage, addXMLheader bool) error {
 	val, err := xml.Marshal(hello)
 	if err != nil {
 		return err
 	}
 
-	header := []byte(xml.Header)
+	var header []byte
+
+	if addXMLheader {
+		header = []byte(xml.Header)
+	} else {
+		header = []byte("")
+	}
+
 	val = append(header, val...)
 	err = t.Send(val)
 	return err

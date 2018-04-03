@@ -58,7 +58,7 @@ func NewSession(t Transport) *Session {
 	s.ServerCapabilities = serverHello.Capabilities
 
 	// Send our hello using default capabilities.
-	t.SendHello(&HelloMessage{Capabilities: DefaultCapabilities})
+	t.SendHello(&HelloMessage{Capabilities: DefaultCapabilities}, true)
 
 	return s
 }
