@@ -1,3 +1,11 @@
+// Copyright (c) 2018, Juniper Networks, Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+/*
+Transport JunOS provides the ability to communicate with JunOS via local shell
+NETCONF interface (xml-mode netconf need-trailer).
+*/
 package netconf
 
 import (
@@ -11,24 +19,16 @@ type TransportJunOS struct {
 	cmd *exec.Cmd
 }
 
-// Close closes an existing session.
+// Close closes an existing local NETCONF session.
 func (t *TransportJunOS) Close() error {
-	return nil
-}
-
-// Open creates a new session.
-func (t *TransportJunOS) Open() error {
-	var err error
-
-	err = t.setup()
-	if err != nil {
-		return err
+	if t.cmd != nil {
+		t.ReadWriteCloser.Close()
 	}
 	return nil
 }
 
-// setup executes the local shell command.
-func (t *TransportJunOS) setup() error {
+// Open creates a new local NETCONF session.
+func (t *TransportJunOS) Open() error {
 	var err error
 
 	t.cmd = exec.Command("xml-mode", "netconf", "need-trailer")
