@@ -48,7 +48,7 @@ func (t *TransportJunos) Open() error {
 }
 
 // Junos creates a new NETCONF session using shell transport.
-func Junos() (*Session, error) {
+func DialJunos() (*Session, error) {
 	var t TransportJunos
 	err := t.Open()
 	if err != nil {
