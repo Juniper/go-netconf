@@ -33,17 +33,17 @@ func (t *TransportJunos) Open() error {
 
 	t.cmd = exec.Command("xml-mode", "netconf", "need-trailer")
 
-	writer, err := t.cmd.StdinPipe()
+	w, err := t.cmd.StdinPipe()
 	if err != nil {
 		return err
 	}
 
-	reader, err := t.cmd.StdoutPipe()
+	r, err := t.cmd.StdoutPipe()
 	if err != nil {
 		return err
 	}
 
-	t.ReadWriteCloser = NewReadWriteCloser(reader, writer)
+	t.ReadWriteCloser = NewReadWriteCloser(r, w)
 	return t.cmd.Start()
 }
 
