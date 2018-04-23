@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 /*
-Transport JunOS provides the ability to communicate with JunOS via local shell
+Transport Junos provides the ability to communicate with Junos via local shell
 NETCONF interface (xml-mode netconf need-trailer).
 */
 package netconf
@@ -12,15 +12,15 @@ import (
 	"os/exec"
 )
 
-// TransportJunOS maintains the information necessary to communicate with JunOS
+// TransportJunos maintains the information necessary to communicate with Junos
 // via local shell.
-type TransportJunOS struct {
+type TransportJunos struct {
 	transportBasicIO
 	cmd *exec.Cmd
 }
 
 // Close closes an existing local NETCONF session.
-func (t *TransportJunOS) Close() error {
+func (t *TransportJunos) Close() error {
 	if t.cmd != nil {
 		t.ReadWriteCloser.Close()
 	}
@@ -28,7 +28,7 @@ func (t *TransportJunOS) Close() error {
 }
 
 // Open creates a new local NETCONF session.
-func (t *TransportJunOS) Open() error {
+func (t *TransportJunos) Open() error {
 	var err error
 
 	t.cmd = exec.Command("xml-mode", "netconf", "need-trailer")
@@ -47,9 +47,9 @@ func (t *TransportJunOS) Open() error {
 	return t.cmd.Start()
 }
 
-// JunOS creates a new NETCONF session using shell transport.
-func JunOS() (*Session, error) {
-	var t TransportJunOS
+// Junos creates a new NETCONF session using shell transport.
+func Junos() (*Session, error) {
+	var t TransportJunos
 	err := t.Open()
 	if err != nil {
 		return nil, err
