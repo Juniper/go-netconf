@@ -1,3 +1,9 @@
+// Go NETCONF Client - Juniper Example (show system information)
+//
+// Copyright (c) 2013-2018, Juniper Networks, Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 package main
 
 import (
@@ -5,12 +11,13 @@ import (
 	"encoding/xml"
 	"flag"
 	"fmt"
-	"github.com/Juniper/go-netconf/netconf"
-	"golang.org/x/crypto/ssh"
-	"golang.org/x/crypto/ssh/terminal"
 	"log"
 	"os"
 	"syscall"
+
+	"github.com/Juniper/go-netconf/netconf"
+	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 var (

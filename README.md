@@ -1,10 +1,8 @@
 # netconf
 
-
 [![GoDoc](https://godoc.org/github.com/Juniper/go-netconf/netconf?status.svg)](https://godoc.org/github.com/Juniper/go-netconf/netconf)
 [![Report Card](https://goreportcard.com/badge/github.com/Juniper/go-netconf/netconf)](https://goreportcard.com/report/github.com/Juniper/go-netconf/netconf)
 [![Build Status](https://travis-ci.org/Juniper/go-netconf.png)](https://travis-ci.org/Juniper/go-netconf)
-
 
 This library is a simple NETCONF client based on [RFC6241](http://tools.ietf.org/html/rfc6241) and [RFC6242](http://tools.ietf.org/html/rfc6242) (although not fully compliant yet).
 
@@ -29,9 +27,7 @@ You can view full API documentation at GoDoc: http://godoc.org/github.com/Junipe
 ## License
 (BSD 2)
 
-Copyright © 2013, Juniper Networks
-
-All rights reserved.
+Copyright © 2013-2018 Juniper Networks, Inc. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -49,3 +45,4 @@ Authors and Contributors
 * [Charl Matthee](https://github.com/charl)
 * [Jade Auer](https://github.com/jda)
 * [Wayne Tucker](https://github.com/wtucker)
+* [Christian Giese](https://github.com/GIC-de), Juniper Networks
