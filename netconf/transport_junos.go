@@ -2,10 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-/*
-Transport Junos provides the ability to communicate with Junos via local shell
-NETCONF interface (xml-mode netconf need-trailer).
-*/
 package netconf
 
 import (
@@ -13,7 +9,7 @@ import (
 )
 
 // TransportJunos maintains the information necessary to communicate with Junos
-// via local shell.
+// via local shell NETCONF interface.
 type TransportJunos struct {
 	transportBasicIO
 	cmd *exec.Cmd
@@ -47,7 +43,8 @@ func (t *TransportJunos) Open() error {
 	return t.cmd.Start()
 }
 
-// Junos creates a new NETCONF session using shell transport.
+// DialJunos creates a new NETCONF session via Junos local shell
+// NETCONF interface (xml-mode netconf need-trailer).
 func DialJunos() (*Session, error) {
 	var t TransportJunos
 	err := t.Open()
