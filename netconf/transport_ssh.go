@@ -29,7 +29,7 @@ const (
 )
 
 // TransportSSH maintains the information necessary to communicate with the
-// remote device over SSH
+// remote device over SSH.
 type TransportSSH struct {
 	transportBasicIO
 	sshClient  *ssh.Client
@@ -49,15 +49,15 @@ func (t *TransportSSH) Close() error {
 	return t.sshClient.Close()
 }
 
-// Dial connects and establishes SSH sessions
+// Dial connects and establishes SSH sessions.
 //
 // target can be an IP address (e.g.) 172.16.1.1 which utlizes the default
-// NETCONF over SSH port of 830.  Target can also specify a port with the
-// following format <host>:<port (e.g 172.16.1.1:22)
+// NETCONF over SSH port of 830. Target can also specify a port with the
+// following format <host>:<port (e.g 172.16.1.1:22).
 //
 // config takes a ssh.ClientConfig connection. See documentation for
-// go.crypto/ssh for documenation.  There is a helper function SSHConfigPassword
-// thar returns a ssh.ClientConfig for simple username/password authentication
+// go.crypto/ssh for details. There is a helper function SSHConfigPassword
+// thar returns a ssh.ClientConfig for simple username/password authentication.
 func (t *TransportSSH) Dial(target string, config *ssh.ClientConfig) error {
 	if !strings.Contains(target, ":") {
 		target = fmt.Sprintf("%s:%d", target, sshDefaultPort)
@@ -86,17 +86,17 @@ func (t *TransportSSH) setupSession() error {
 		return err
 	}
 
-	writer, err := t.sshSession.StdinPipe()
+	w, err := t.sshSession.StdinPipe()
 	if err != nil {
 		return err
 	}
 
-	reader, err := t.sshSession.StdoutPipe()
+	r, err := t.sshSession.StdoutPipe()
 	if err != nil {
 		return err
 	}
 
-	t.ReadWriteCloser = NewReadWriteCloser(reader, writer)
+	t.ReadWriteCloser = NewReadWriteCloser(r, w)
 	return t.sshSession.RequestSubsystem(sshNetconfSubsystem)
 }
 
@@ -106,7 +106,6 @@ func NewSSHSession(conn net.Conn, config *ssh.ClientConfig) (*Session, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return NewSession(t), nil
 }
 
@@ -123,19 +122,20 @@ func DialSSH(target string, config *ssh.ClientConfig) (*Session, error) {
 
 // DialSSHTimeout creates a new NETCONF session using a SSH Transport with timeout.
 // See TransportSSH.Dial for arguments.
-// The timeout value is used for both connection establishment and Read/Write operations.
+// The timeout value is used for connection establishment and Exec operations (RPC requests).
 func DialSSHTimeout(target string, config *ssh.ClientConfig, timeout time.Duration) (*Session, error) {
+	if !strings.Contains(target, ":") {
+		target = fmt.Sprintf("%s:%d", target, sshDefaultPort)
+	}
 	bareConn, err := net.DialTimeout("tcp", target, timeout)
 	if err != nil {
 		return nil, err
 	}
-
 	conn := &deadlineConn{Conn: bareConn, timeout: timeout}
 	t, err := connToTransport(conn, config)
 	if err != nil {
 		return nil, err
 	}
-
 	go func() {
 		ticker := time.NewTicker(timeout / 2)
 		defer ticker.Stop()
@@ -146,13 +146,14 @@ func DialSSHTimeout(target string, config *ssh.ClientConfig, timeout time.Durati
 			}
 		}
 	}()
-
-	return NewSession(t), nil
+	s := NewSession(t)
+	s.RPCTimeout = timeout
+	return s, nil
 }
 
 // SSHConfigPassword is a convenience function that takes a username and password
 // and returns a new ssh.ClientConfig setup to pass that username and password.
-// Convenience means that HostKey checks are disabled so it's probably less secure
+// Convenience means that HostKey checks are disabled so it's probably less secure.
 func SSHConfigPassword(user string, pass string) *ssh.ClientConfig {
 	return &ssh.ClientConfig{
 		User: user,
@@ -165,7 +166,7 @@ func SSHConfigPassword(user string, pass string) *ssh.ClientConfig {
 
 // SSHConfigPubKeyFile is a convenience function that takes a username, private key
 // and passphrase and returns a new ssh.ClientConfig setup to pass credentials
-// to DialSSH
+// to DialSSH.
 func SSHConfigPubKeyFile(user string, file string, passphrase string) (*ssh.ClientConfig, error) {
 	buf, err := ioutil.ReadFile(file)
 	if err != nil {
@@ -177,8 +178,7 @@ func SSHConfigPubKeyFile(user string, file string, passphrase string) (*ssh.Clie
 	}
 
 	if x509.IsEncryptedPEMBlock(block) {
-		b := block.Bytes
-		b, err = x509.DecryptPEMBlock(block, []byte(passphrase))
+		b, err := x509.DecryptPEMBlock(block, []byte(passphrase))
 		if err != nil {
 			return nil, err
 		}
@@ -203,7 +203,7 @@ func SSHConfigPubKeyFile(user string, file string, passphrase string) (*ssh.Clie
 
 // SSHConfigPubKeyAgent is a convience function that takes a username and
 // returns a new ssh.Clientconfig setup to pass credentials received from
-// an ssh agent
+// an ssh agent.
 func SSHConfigPubKeyAgent(user string) (*ssh.ClientConfig, error) {
 	c, err := net.Dial("unix", os.Getenv("SSH_AUTH_SOCK"))
 	if err != nil {

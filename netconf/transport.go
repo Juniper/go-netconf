@@ -46,8 +46,14 @@ type transportBasicIO struct {
 	chunkedFraming bool
 }
 
-// Sends a well formated NETCONF rpc message as a slice of bytes adding on the
-// nessisary framining messages.
+// ReceiveResult defines the result of the Transport.Receive method.
+type ReceiveResult struct {
+	p   []byte
+	err error
+}
+
+// Sends a well formated NETCONF RPC message as a slice of bytes adding on the
+// necessary framing messages.
 func (t *transportBasicIO) Send(data []byte) error {
 	t.Write(data)
 	// Pad to make sure the msgSeparator isn't sent across a 4096-byte boundary

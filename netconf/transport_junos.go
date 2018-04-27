@@ -6,6 +6,7 @@ package netconf
 
 import (
 	"os/exec"
+	"time"
 )
 
 // TransportJunos maintains the information necessary to communicate with Junos
@@ -52,4 +53,16 @@ func DialJunos() (*Session, error) {
 		return nil, err
 	}
 	return NewSession(&t), nil
+}
+
+// DialJunosTimeout creates a new NETCONF session via Junos local shell
+// NETCONF interface (xml-mode netconf need-trailer) with timeout.
+// The timeout value is used for read operations only (rpc response).
+func DialJunosTimeout(timeout time.Duration) (*Session, error) {
+	s, err := DialJunos()
+	if err != nil {
+		return nil, err
+	}
+	s.RPCTimeout = timeout
+	return s, err
 }
