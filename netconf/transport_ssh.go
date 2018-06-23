@@ -58,9 +58,15 @@ func (t *TransportSSH) Close() error {
 // config takes a ssh.ClientConfig connection. See documentation for
 // go.crypto/ssh for documenation.  There is a helper function SSHConfigPassword
 // thar returns a ssh.ClientConfig for simple username/password authentication
-func (t *TransportSSH) Dial(target string, config *ssh.ClientConfig) error {
+func (t *TransportSSH) Dial(target string, config *ssh.ClientConfig, port int) error {
 	if !strings.Contains(target, ":") {
-		target = fmt.Sprintf("%s:%d", target, sshDefaultPort)
+		sshport := 0
+		if port != 0 {
+			sshport = port
+		} else {
+			sshport = sshDefaultPort
+		}
+		target = fmt.Sprintf("%s:%d", target, sshport)
 	}
 
 	var err error
@@ -112,9 +118,9 @@ func NewSSHSession(conn net.Conn, config *ssh.ClientConfig) (*Session, error) {
 
 // DialSSH creates a new NETCONF session using a SSH Transport.
 // See TransportSSH.Dial for arguments.
-func DialSSH(target string, config *ssh.ClientConfig) (*Session, error) {
+func DialSSH(target string, config *ssh.ClientConfig, port int) (*Session, error) {
 	var t TransportSSH
-	err := t.Dial(target, config)
+	err := t.Dial(target, config, port)
 	if err != nil {
 		return nil, err
 	}
