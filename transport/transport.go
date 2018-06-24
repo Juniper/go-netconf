@@ -41,14 +41,15 @@ type Transport interface {
 	SendHello(*HelloMessage) error
 }
 
-type transportBasicIO struct {
+// TransportBasicIO is the type for dealing with transportIO which implements Transport
+type TransportBasicIO struct {
 	io.ReadWriteCloser
 	chunkedFraming bool
 }
 
-// Sends a well formated NETCONF rpc message as a slice of bytes adding on the
+// Send a well formated NETCONF rpc message as a slice of bytes adding on the
 // nessisary framining messages.
-func (t *transportBasicIO) Send(data []byte) error {
+func (t *TransportBasicIO) Send(data []byte) error {
 	t.Write(data)
 	// Pad to make sure the msgSeparator isn't sent across a 4096-byte boundary
 	if (len(data)+len(msgSeperator))%4096 < 6 {
@@ -59,11 +60,13 @@ func (t *transportBasicIO) Send(data []byte) error {
 	return nil // TODO: Implement error handling!
 }
 
-func (t *transportBasicIO) Receive() ([]byte, error) {
+// Receive data over transport
+func (t *TransportBasicIO) Receive() ([]byte, error) {
 	return t.WaitForBytes([]byte(msgSeperator))
 }
 
-func (t *transportBasicIO) SendHello(hello *HelloMessage) error {
+// SendHello over transport
+func (t *TransportBasicIO) SendHello(hello *HelloMessage) error {
 	val, err := xml.Marshal(hello)
 	if err != nil {
 		return err
@@ -75,7 +78,8 @@ func (t *transportBasicIO) SendHello(hello *HelloMessage) error {
 	return err
 }
 
-func (t *transportBasicIO) ReceiveHello() (*HelloMessage, error) {
+// ReceiveHello over transport
+func (t *TransportBasicIO) ReceiveHello() (*HelloMessage, error) {
 	hello := new(HelloMessage)
 
 	val, err := t.Receive()
@@ -87,13 +91,15 @@ func (t *transportBasicIO) ReceiveHello() (*HelloMessage, error) {
 	return hello, err
 }
 
-func (t *transportBasicIO) Writeln(b []byte) (int, error) {
+// Writeln over transport
+func (t *TransportBasicIO) Writeln(b []byte) (int, error) {
 	t.Write(b)
 	t.Write([]byte("\n"))
 	return 0, nil
 }
 
-func (t *transportBasicIO) WaitForFunc(f func([]byte) (int, error)) ([]byte, error) {
+// WaitForFunc over transport
+func (t *TransportBasicIO) WaitForFunc(f func([]byte) (int, error)) ([]byte, error) {
 	var out bytes.Buffer
 	buf := make([]byte, 4096)
 
@@ -130,13 +136,15 @@ func (t *transportBasicIO) WaitForFunc(f func([]byte) (int, error)) ([]byte, err
 	return nil, fmt.Errorf("WaitForFunc failed")
 }
 
-func (t *transportBasicIO) WaitForBytes(b []byte) ([]byte, error) {
+// WaitForBytes over transport
+func (t *TransportBasicIO) WaitForBytes(b []byte) ([]byte, error) {
 	return t.WaitForFunc(func(buf []byte) (int, error) {
 		return bytes.Index(buf, b), nil
 	})
 }
 
-func (t *transportBasicIO) WaitForString(s string) (string, error) {
+// WaitForString over transport
+func (t *TransportBasicIO) WaitForString(s string) (string, error) {
 	out, err := t.WaitForBytes([]byte(s))
 	if out != nil {
 		return string(out), err
@@ -144,7 +152,8 @@ func (t *transportBasicIO) WaitForString(s string) (string, error) {
 	return "", err
 }
 
-func (t *transportBasicIO) WaitForRegexp(re *regexp.Regexp) ([]byte, [][]byte, error) {
+// WaitForRegexp over transport
+func (t *TransportBasicIO) WaitForRegexp(re *regexp.Regexp) ([]byte, [][]byte, error) {
 	var matches [][]byte
 	out, err := t.WaitForFunc(func(buf []byte) (int, error) {
 		loc := re.FindSubmatchIndex(buf)

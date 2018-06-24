@@ -59,7 +59,8 @@ type RPCReply struct {
 	RawReply string     `xml:"-"`
 }
 
-func newRPCReply(rawXML []byte, ErrOnWarning bool) (*RPCReply, error) {
+// NewRPCReply creates a new RPC Reply
+func NewRPCReply(rawXML []byte, ErrOnWarning bool) (*RPCReply, error) {
 	reply := &RPCReply{}
 	reply.RawReply = string(rawXML)
 

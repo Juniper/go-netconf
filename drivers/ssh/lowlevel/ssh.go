@@ -16,14 +16,16 @@ import (
 	"strings"
 	"time"
 
+	session "github.com/arsonistgopher/go-netconf/session"
+	transport "github.com/arsonistgopher/go-netconf/transport"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 )
 
 const (
-	// sshDefaultPort is the default SSH port used when communicating with
+	// DefaultPort is the default SSH port used when communicating with
 	// NETCONF
-	sshDefaultPort = 830
+	DefaultPort = 830
 	// sshNetconfSubsystem sets the SSH subsystem to NETCONF
 	sshNetconfSubsystem = "netconf"
 )
@@ -31,25 +33,25 @@ const (
 // TransportSSH maintains the information necessary to communicate with the
 // remote device over SSH
 type TransportSSH struct {
-	transportBasicIO
-	sshClient  *ssh.Client
-	sshSession *ssh.Session
+	transport.TransportBasicIO              // Embedded Transport basic IO base type
+	SSHClient                  *ssh.Client  // SSH Client
+	SSHSession                 *ssh.Session // SSH Client Session
 }
 
 // Close closes an existing SSH session and socket if they exist.
 func (t *TransportSSH) Close() error {
 	// Close the SSH Session if we have one
-	if t.sshSession != nil {
-		if err := t.sshSession.Close(); err != nil {
+	if t.SSHSession != nil {
+		if err := t.SSHSession.Close(); err != nil {
 			return err
 		}
 	}
 
 	// Close the socket
-	return t.sshClient.Close()
+	return t.SSHClient.Close()
 }
 
-// Dial connects and establishes SSH sessions
+// DialSSH connects and establishes SSH sessions
 //
 // target can be an IP address (e.g.) 172.16.1.1 which utlizes the default
 // NETCONF over SSH port of 830.  Target can also specify a port with the
@@ -58,25 +60,25 @@ func (t *TransportSSH) Close() error {
 // config takes a ssh.ClientConfig connection. See documentation for
 // go.crypto/ssh for documenation.  There is a helper function SSHConfigPassword
 // thar returns a ssh.ClientConfig for simple username/password authentication
-func (t *TransportSSH) Dial(target string, config *ssh.ClientConfig, port int) error {
+func (t *TransportSSH) DialSSH(target string, config *ssh.ClientConfig, port int) error {
 	if !strings.Contains(target, ":") {
 		sshport := 0
 		if port != 0 {
 			sshport = port
 		} else {
-			sshport = sshDefaultPort
+			sshport = DefaultPort
 		}
 		target = fmt.Sprintf("%s:%d", target, sshport)
 	}
 
 	var err error
 
-	t.sshClient, err = ssh.Dial("tcp", target, config)
+	t.SSHClient, err = ssh.Dial("tcp", target, config)
 	if err != nil {
 		return err
 	}
 
-	err = t.setupSession()
+	err = t.SetupSession()
 	if err != nil {
 		return err
 	}
@@ -84,53 +86,54 @@ func (t *TransportSSH) Dial(target string, config *ssh.ClientConfig, port int) e
 	return nil
 }
 
-func (t *TransportSSH) setupSession() error {
+// SetupSession sorts out wiring
+func (t *TransportSSH) SetupSession() error {
 	var err error
 
-	t.sshSession, err = t.sshClient.NewSession()
+	t.SSHSession, err = t.SSHClient.NewSession()
 	if err != nil {
 		return err
 	}
 
-	writer, err := t.sshSession.StdinPipe()
+	writer, err := t.SSHSession.StdinPipe()
 	if err != nil {
 		return err
 	}
 
-	reader, err := t.sshSession.StdoutPipe()
+	reader, err := t.SSHSession.StdoutPipe()
 	if err != nil {
 		return err
 	}
 
-	t.ReadWriteCloser = NewReadWriteCloser(reader, writer)
-	return t.sshSession.RequestSubsystem(sshNetconfSubsystem)
+	t.ReadWriteCloser = transport.NewReadWriteCloser(reader, writer)
+	return t.SSHSession.RequestSubsystem(sshNetconfSubsystem)
 }
 
 // NewSSHSession creates a new NETCONF session using an existing net.Conn.
-func NewSSHSession(conn net.Conn, config *ssh.ClientConfig) (*Session, error) {
+func NewSSHSession(conn net.Conn, config *ssh.ClientConfig) (*session.Session, error) {
 	t, err := connToTransport(conn, config)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewSession(t), nil
+	return session.NewSession(t), nil
 }
 
-// DialSSH creates a new NETCONF session using a SSH Transport.
+// Dial creates a new NETCONF session using a SSH Transport.
 // See TransportSSH.Dial for arguments.
-func DialSSH(target string, config *ssh.ClientConfig, port int) (*Session, error) {
+func Dial(target string, config *ssh.ClientConfig, port int) (*session.Session, error) {
 	var t TransportSSH
-	err := t.Dial(target, config, port)
+	err := t.DialSSH(target, config, port)
 	if err != nil {
 		return nil, err
 	}
-	return NewSession(&t), nil
+	return session.NewSession(&t), nil
 }
 
 // DialSSHTimeout creates a new NETCONF session using a SSH Transport with timeout.
 // See TransportSSH.Dial for arguments.
 // The timeout value is used for both connection establishment and Read/Write operations.
-func DialSSHTimeout(target string, config *ssh.ClientConfig, timeout time.Duration) (*Session, error) {
+func DialSSHTimeout(target string, config *ssh.ClientConfig, timeout time.Duration) (*session.Session, error) {
 	bareConn, err := net.DialTimeout("tcp", target, timeout)
 	if err != nil {
 		return nil, err
@@ -146,14 +149,14 @@ func DialSSHTimeout(target string, config *ssh.ClientConfig, timeout time.Durati
 		ticker := time.NewTicker(timeout / 2)
 		defer ticker.Stop()
 		for range ticker.C {
-			_, _, err := t.sshClient.Conn.SendRequest("KEEP_ALIVE", true, nil)
+			_, _, err := t.SSHClient.Conn.SendRequest("KEEP_ALIVE", true, nil)
 			if err != nil {
 				return
 			}
 		}
 	}()
 
-	return NewSession(t), nil
+	return session.NewSession(t), nil
 }
 
 // SSHConfigPassword is a convenience function that takes a username and password
@@ -230,9 +233,9 @@ func connToTransport(conn net.Conn, config *ssh.ClientConfig) (*TransportSSH, er
 	}
 
 	t := &TransportSSH{}
-	t.sshClient = ssh.NewClient(c, chans, reqs)
+	t.SSHClient = ssh.NewClient(c, chans, reqs)
 
-	err = t.setupSession()
+	err = t.SetupSession()
 	if err != nil {
 		return nil, err
 	}

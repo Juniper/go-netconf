@@ -5,13 +5,27 @@
 package netconf
 
 import (
+	"net"
 	"os/exec"
+
+	session "github.com/arsonistgopher/go-netconf/session"
+	transport "github.com/arsonistgopher/go-netconf/transport"
+	"golang.org/x/crypto/ssh"
 )
+
+// DriverSSH type is for creating an SSH based driver. Maintains state for session and connection. Implements Driver{}
+type DriverSSH struct {
+	Port      int               // Target port
+	Target    string            // Target host
+	Conn      net.Conn          // Conn for session
+	SSHConfig *ssh.ClientConfig // SSH Config
+	Transport *TransportJunos   // Transport data
+}
 
 // TransportJunos maintains the information necessary to communicate with Junos
 // via local shell NETCONF interface.
 type TransportJunos struct {
-	transportBasicIO
+	transport.TransportBasicIO
 	cmd *exec.Cmd
 }
 
@@ -39,17 +53,17 @@ func (t *TransportJunos) Open() error {
 		return err
 	}
 
-	t.ReadWriteCloser = NewReadWriteCloser(r, w)
+	t.ReadWriteCloser = transport.NewReadWriteCloser(r, w)
 	return t.cmd.Start()
 }
 
-// DialJunos creates a new NETCONF session via Junos local shell
+// Dial creates a new NETCONF session via Junos local shell
 // NETCONF interface (xml-mode netconf need-trailer).
-func DialJunos() (*Session, error) {
+func Dial() (*session.Session, error) {
 	var t TransportJunos
 	err := t.Open()
 	if err != nil {
 		return nil, err
 	}
-	return NewSession(&t), nil
+	return session.NewSession(&t), nil
 }

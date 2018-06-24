@@ -5,18 +5,21 @@
 // license that can be found in the LICENSE file.
 
 /*
-This library is a simple NETCONF client based on RFC6241 and RFC6242
+Package netconf is a simple NETCONF client based on RFC6241 and RFC6242
 (although not fully compliant yet).
 */
 package netconf
 
 import (
 	"encoding/xml"
+
+	rpc "github.com/arsonistgopher/go-netconf/rpc"
+	transport "github.com/arsonistgopher/go-netconf/transport"
 )
 
 // Session defines the necessary components for a NETCONF session
 type Session struct {
-	Transport          Transport
+	Transport          transport.Transport
 	SessionID          int
 	ServerCapabilities []string
 	ErrOnWarning       bool
@@ -28,10 +31,10 @@ func (s *Session) Close() error {
 }
 
 // Exec is used to execute an RPC method or methods
-func (s *Session) Exec(methods ...RPCMethod) (*RPCReply, error) {
-	rpc := NewRPCMessage(methods)
+func (s *Session) Exec(methods ...rpc.RPCMethod) (*rpc.RPCReply, error) {
+	rpcm := rpc.NewRPCMessage(methods)
 
-	request, err := xml.Marshal(rpc)
+	request, err := xml.Marshal(rpcm)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +52,7 @@ func (s *Session) Exec(methods ...RPCMethod) (*RPCReply, error) {
 		return nil, err
 	}
 
-	reply, err := newRPCReply(rawXML, s.ErrOnWarning)
+	reply, err := rpc.NewRPCReply(rawXML, s.ErrOnWarning)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +61,7 @@ func (s *Session) Exec(methods ...RPCMethod) (*RPCReply, error) {
 }
 
 // NewSession creates a new NETCONF session using the provided transport layer.
-func NewSession(t Transport) *Session {
+func NewSession(t transport.Transport) *Session {
 	s := new(Session)
 	s.Transport = t
 
@@ -68,7 +71,7 @@ func NewSession(t Transport) *Session {
 	s.ServerCapabilities = serverHello.Capabilities
 
 	// Send our hello using default capabilities.
-	t.SendHello(&HelloMessage{Capabilities: DefaultCapabilities})
+	t.SendHello(&transport.HelloMessage{Capabilities: transport.DefaultCapabilities})
 
 	return s
 }
