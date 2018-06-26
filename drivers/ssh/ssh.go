@@ -96,8 +96,8 @@ func (d *DriverSSH) Close() error {
 }
 
 // Lock the target datastore
-func (d *DriverSSH) Lock() (*rpc.RPCReply, error) {
-	reply, err := d.Session.Exec(rpc.MethodLock(d.Datastore))
+func (d *DriverSSH) Lock(ds string) (*rpc.RPCReply, error) {
+	reply, err := d.Session.Exec(rpc.MethodLock(ds))
 
 	if err != nil {
 		return reply, err
@@ -107,8 +107,8 @@ func (d *DriverSSH) Lock() (*rpc.RPCReply, error) {
 }
 
 // Unlock the target datastore
-func (d *DriverSSH) Unlock() (*rpc.RPCReply, error) {
-	reply, err := d.Session.Exec(rpc.MethodUnlock(d.Datastore))
+func (d *DriverSSH) Unlock(ds string) (*rpc.RPCReply, error) {
+	reply, err := d.Session.Exec(rpc.MethodUnlock(ds))
 
 	if err != nil {
 		return reply, err

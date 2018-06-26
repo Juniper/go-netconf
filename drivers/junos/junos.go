@@ -64,8 +64,8 @@ func (d *DriverJunos) Close() error {
 }
 
 // Lock the target datastore
-func (d *DriverJunos) Lock() (*rpc.RPCReply, error) {
-	reply, err := d.Session.Exec(rpc.MethodLock(d.Datastore))
+func (d *DriverJunos) Lock(ds string) (*rpc.RPCReply, error) {
+	reply, err := d.Session.Exec(rpc.MethodLock(ds))
 
 	if err != nil {
 		return reply, err
@@ -75,8 +75,8 @@ func (d *DriverJunos) Lock() (*rpc.RPCReply, error) {
 }
 
 // Unlock the target datastore
-func (d *DriverJunos) Unlock() (*rpc.RPCReply, error) {
-	reply, err := d.Session.Exec(rpc.MethodUnlock(d.Datastore))
+func (d *DriverJunos) Unlock(ds string) (*rpc.RPCReply, error) {
+	reply, err := d.Session.Exec(rpc.MethodUnlock(ds))
 
 	if err != nil {
 		return reply, err

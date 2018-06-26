@@ -8,9 +8,8 @@ import rpc "github.com/arsonistgopher/go-netconf/rpc"
 
 // Driver interface for building drivers that are self-contained from a user's perspective.
 type Driver interface {
-	SetDatastore(string) error
-	Lock() (*rpc.RPCReply, error)
-	Unlock() (*rpc.RPCReply, error)
+	Lock(ds string) (*rpc.RPCReply, error)
+	Unlock(ds string) (*rpc.RPCReply, error)
 
 	Close() error
 	Dial() error
