@@ -11,20 +11,6 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-/* Type below implements this interface
-// Driver interface for building drivers that are self-contained from a user's perspective.
-type Driver interface {
-	SetDatastore(string) error
-	Lock() (*rpc.RPCReply, error)
-	Unlock() (*rpc.RPCReply, error)
-	Close() error
-	Dial() error
-	DialTimeout() error
-	SendRaw() (*rpc.RPCReply, error)
-	GetConfig() (*rpc.RPCReply, error)
-}
-*/
-
 // DriverSSH type is for creating an SSH based driver. Maintains state for session and connection. Implements Driver{}
 type DriverSSH struct {
 	Timeout   time.Duration          // Timeout for SSH timed sessions

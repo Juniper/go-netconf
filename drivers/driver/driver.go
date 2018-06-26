@@ -18,3 +18,8 @@ type Driver interface {
 	SendRaw(rawxml string) (*rpc.RPCReply, error)
 	GetConfig() (*rpc.RPCReply, error)
 }
+
+// New is an interface that checks compliancy
+func New(d Driver) Driver {
+	return d
+}

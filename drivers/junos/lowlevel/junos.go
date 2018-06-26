@@ -5,22 +5,11 @@
 package netconf
 
 import (
-	"net"
 	"os/exec"
 
 	session "github.com/arsonistgopher/go-netconf/session"
 	transport "github.com/arsonistgopher/go-netconf/transport"
-	"golang.org/x/crypto/ssh"
 )
-
-// DriverSSH type is for creating an SSH based driver. Maintains state for session and connection. Implements Driver{}
-type DriverSSH struct {
-	Port      int               // Target port
-	Target    string            // Target host
-	Conn      net.Conn          // Conn for session
-	SSHConfig *ssh.ClientConfig // SSH Config
-	Transport *TransportJunos   // Transport data
-}
 
 // TransportJunos maintains the information necessary to communicate with Junos
 // via local shell NETCONF interface.
