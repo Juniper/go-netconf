@@ -52,20 +52,24 @@ func (m *RPCMessage) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 
 // RPCReply defines a reply to a RPC request
 type RPCReply struct {
-	XMLName  xml.Name   `xml:"rpc-reply"`
-	Errors   []RPCError `xml:"rpc-error,omitempty"`
-	Data     string     `xml:",innerxml"`
-	Ok       bool       `xml:",omitempty"`
-	RawReply string     `xml:"-"`
+	XMLName   xml.Name   `xml:"rpc-reply"`
+	Errors    []RPCError `xml:"rpc-error,omitempty"`
+	Data      string     `xml:",innerxml"`
+	Ok        bool       `xml:",omitempty"`
+	RawReply  string     `xml:"-"`
+	MessageID string     `xml:"-"`
 }
 
-func newRPCReply(rawXML []byte, ErrOnWarning bool) (*RPCReply, error) {
+func newRPCReply(rawXML []byte, ErrOnWarning bool, messageID string) (*RPCReply, error) {
 	reply := &RPCReply{}
 	reply.RawReply = string(rawXML)
 
 	if err := xml.Unmarshal(rawXML, reply); err != nil {
 		return nil, err
 	}
+
+	// will return a valid reply so setting Requests message id
+	reply.MessageID = messageID
 
 	if reply.Errors != nil {
 		for _, rpcErr := range reply.Errors {
