@@ -9,6 +9,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/Juniper/go-netconf/netconf"
 	"golang.org/x/crypto/ssh"
@@ -28,6 +29,9 @@ func main() {
 	}
 
 	defer s.Close()
+
+	// enable RPC logging
+	netconf.Logger.SetOutput(os.Stderr)
 
 	fmt.Println(s.ServerCapabilities)
 	fmt.Println(s.SessionID)

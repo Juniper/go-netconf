@@ -44,6 +44,9 @@ func (s *Session) Exec(methods ...RPCMethod) (*RPCReply, error) {
 		return nil, err
 	}
 
+	// write the request to a no op logger, which can be overriden by the library user
+	Logger.Println(string(request))
+
 	rawXML, err := s.Transport.Receive()
 	if err != nil {
 		return nil, err
@@ -53,6 +56,9 @@ func (s *Session) Exec(methods ...RPCMethod) (*RPCReply, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// write the response to a no op logger, which can be overriden by the library user
+	Logger.Println(reply.RawReply)
 
 	return reply, nil
 }
