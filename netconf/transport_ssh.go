@@ -165,7 +165,8 @@ func SSHConfigPassword(user string, pass string) *ssh.ClientConfig {
 
 // SSHConfigPubKeyFile is a convenience function that takes a username, private key
 // and passphrase and returns a new ssh.ClientConfig setup to pass credentials
-// to DialSSH
+// to DialSSH. Convenience means HostKey checks are disabled, resulting in a
+// connection that is less secure.
 func SSHConfigPubKeyFile(user string, file string, passphrase string) (*ssh.ClientConfig, error) {
 	buf, err := ioutil.ReadFile(file)
 	if err != nil {
@@ -197,13 +198,15 @@ func SSHConfigPubKeyFile(user string, file string, passphrase string) (*ssh.Clie
 		Auth: []ssh.AuthMethod{
 			ssh.PublicKeys(key),
 		},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}, nil
 
 }
 
 // SSHConfigPubKeyAgent is a convience function that takes a username and
 // returns a new ssh.Clientconfig setup to pass credentials received from
-// an ssh agent
+// an ssh agent. Convenience means HostKey checks are disabled, resulting
+// in a connection that is less secure.
 func SSHConfigPubKeyAgent(user string) (*ssh.ClientConfig, error) {
 	c, err := net.Dial("unix", os.Getenv("SSH_AUTH_SOCK"))
 	if err != nil {
@@ -214,6 +217,7 @@ func SSHConfigPubKeyAgent(user string) (*ssh.ClientConfig, error) {
 		Auth: []ssh.AuthMethod{
 			ssh.PublicKeysCallback(agent.NewClient(c).Signers),
 		},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}, nil
 }
 
