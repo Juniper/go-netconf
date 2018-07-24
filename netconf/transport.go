@@ -83,7 +83,7 @@ func (t *transportBasicIO) ReceiveHello() (*HelloMessage, error) {
 		return hello, err
 	}
 
-	err = xml.Unmarshal([]byte(val), hello)
+	err = xml.Unmarshal(val, hello)
 	return hello, err
 }
 
