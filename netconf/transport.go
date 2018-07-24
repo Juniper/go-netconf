@@ -43,7 +43,6 @@ type Transport interface {
 
 type transportBasicIO struct {
 	io.ReadWriteCloser
-	chunkedFraming bool
 }
 
 // Sends a well formated NETCONF rpc message as a slice of bytes adding on the

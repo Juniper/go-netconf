@@ -146,7 +146,7 @@ func TestUUIDChar(t *testing.T) {
 	u := uuid()
 
 	for _, v := range u {
-		if valid(int(v)) == false {
+		if !valid(int(v)) {
 			t.Errorf("invalid char %s", string(v))
 
 		}

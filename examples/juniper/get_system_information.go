@@ -43,7 +43,7 @@ type SystemInformation struct {
 func BuildConfig() *ssh.ClientConfig {
 	var config *ssh.ClientConfig
 	var pass string
-	if *pubkey == true {
+	if *pubkey {
 		if *agent {
 			var err error
 			config, err = netconf.SSHConfigPubKeyAgent(*username)
@@ -111,7 +111,10 @@ func main() {
 	}
 	var q SystemInformation
 
-	xml.Unmarshal([]byte(reply.RawReply), &q)
+	err = xml.Unmarshal([]byte(reply.RawReply), &q)
+	if err != nil {
+		log.Fatal(err)
+	}
 	fmt.Printf("hostname: %s\n", q.HostName)
 	fmt.Printf("model: %s\n", q.HardwareModel)
 	fmt.Printf("version: %s\n", q.OsVersion)
