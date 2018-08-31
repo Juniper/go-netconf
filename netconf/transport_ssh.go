@@ -197,6 +197,7 @@ func SSHConfigPubKeyFile(user string, file string, passphrase string) (*ssh.Clie
 		Auth: []ssh.AuthMethod{
 			ssh.PublicKeys(key),
 		},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}, nil
 
 }
@@ -214,6 +215,7 @@ func SSHConfigPubKeyAgent(user string) (*ssh.ClientConfig, error) {
 		Auth: []ssh.AuthMethod{
 			ssh.PublicKeysCallback(agent.NewClient(c).Signers),
 		},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}, nil
 }
 
