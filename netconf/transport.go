@@ -43,7 +43,6 @@ type Transport interface {
 
 type transportBasicIO struct {
 	io.ReadWriteCloser
-	chunkedFraming bool
 }
 
 // Sends a well formated NETCONF rpc message as a slice of bytes adding on the
@@ -83,7 +82,7 @@ func (t *transportBasicIO) ReceiveHello() (*HelloMessage, error) {
 		return hello, err
 	}
 
-	err = xml.Unmarshal([]byte(val), hello)
+	err = xml.Unmarshal(val, hello)
 	return hello, err
 }
 
