@@ -153,6 +153,8 @@ func DialSSHTimeout(target string, config *ssh.ClientConfig, timeout time.Durati
 // SSHConfigPassword is a convenience function that takes a username and password
 // and returns a new ssh.ClientConfig setup to pass that username and password.
 // Convenience means that HostKey checks are disabled so it's probably less secure
+//
+// Deprecated: Please construct a *golang.org/x/crypto/ssh.ClientConfig yourself.
 func SSHConfigPassword(user string, pass string) *ssh.ClientConfig {
 	return &ssh.ClientConfig{
 		User: user,
@@ -166,6 +168,8 @@ func SSHConfigPassword(user string, pass string) *ssh.ClientConfig {
 // SSHConfigPubKeyFile is a convenience function that takes a username, private key
 // and passphrase and returns a new ssh.ClientConfig setup to pass credentials
 // to DialSSH
+//
+// Deprecated: Please construct a *golang.org/x/crypto/ssh.ClientConfig yourself.
 func SSHConfigPubKeyFile(user string, file string, passphrase string) (*ssh.ClientConfig, error) {
 	buf, err := ioutil.ReadFile(file)
 	if err != nil {
@@ -204,6 +208,8 @@ func SSHConfigPubKeyFile(user string, file string, passphrase string) (*ssh.Clie
 // SSHConfigPubKeyAgent is a convience function that takes a username and
 // returns a new ssh.Clientconfig setup to pass credentials received from
 // an ssh agent
+//
+// Deprecated: Please construct a *golang.org/x/crypto/ssh.ClientConfig yourself.
 func SSHConfigPubKeyAgent(user string) (*ssh.ClientConfig, error) {
 	c, err := net.Dial("unix", os.Getenv("SSH_AUTH_SOCK"))
 	if err != nil {

@@ -8,15 +8,20 @@ package main
 
 import (
 	"bufio"
+	"crypto/x509"
+	"encoding/pem"
 	"encoding/xml"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"net"
 	"os"
 	"syscall"
 
 	"github.com/Juniper/go-netconf/netconf"
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/agent"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -27,7 +32,7 @@ var (
 	passphrase   = flag.String("passphrase", "", "SSH private key passphrase (cleartext)")
 	nopassphrase = flag.Bool("nopassphrase", false, "SSH private key does not contain a passphrase")
 	pubkey       = flag.Bool("pubkey", false, "Use SSH public key authentication")
-	agent        = flag.Bool("agent", false, "Use SSH agent for public key authentication")
+	useAgent     = flag.Bool("agent", false, "Use SSH agent for public key authentication")
 )
 
 type SystemInformation struct {
@@ -38,13 +43,63 @@ type SystemInformation struct {
 	HostName      string `xml:"system-information>host-name"`
 }
 
-func BuildConfig() *ssh.ClientConfig {
+func sshPubKeyAgentConfig(user string) (*ssh.ClientConfig, error) {
+	c, err := net.Dial("unix", os.Getenv("SSH_AUTH_SOCK"))
+	if err != nil {
+		return nil, err
+	}
+	return &ssh.ClientConfig{
+		User: user,
+		Auth: []ssh.AuthMethod{
+			ssh.PublicKeysCallback(agent.NewClient(c).Signers),
+		},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+	}, nil
+}
+
+func sshPubKeyFileConfig(user string, file string, passphrase string) (*ssh.ClientConfig, error) {
+	buf, err := ioutil.ReadFile(file)
+	if err != nil {
+		return nil, err
+	}
+	block, rest := pem.Decode(buf)
+	if len(rest) > 0 {
+		return nil, fmt.Errorf("pem: unable to decode file %s", file)
+	}
+
+	if x509.IsEncryptedPEMBlock(block) {
+		b := block.Bytes
+		b, err = x509.DecryptPEMBlock(block, []byte(passphrase))
+		if err != nil {
+			return nil, err
+		}
+		buf = pem.EncodeToMemory(&pem.Block{
+			Type:  block.Type,
+			Bytes: b,
+		})
+	}
+
+	key, err := ssh.ParsePrivateKey(buf)
+	if err != nil {
+		return nil, err
+	}
+	return &ssh.ClientConfig{
+		User: user,
+		Auth: []ssh.AuthMethod{
+			ssh.PublicKeys(key),
+		},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+	}, nil
+
+}
+
+func buildConfig() *ssh.ClientConfig {
 	var config *ssh.ClientConfig
 	var pass string
 	if *pubkey == true {
-		if *agent {
+		if *useAgent {
 			var err error
-			config, err = netconf.SSHConfigPubKeyAgent(*username)
+			config, err = sshPubKeyAgentConfig(*username)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -74,13 +129,19 @@ func BuildConfig() *ssh.ClientConfig {
 		}
 	} else {
 		fmt.Printf("Enter Password: ")
-		bytePassword, err := terminal.ReadPassword(int(syscall.Stdin))
+		password, err := terminal.ReadPassword(int(syscall.Stdin))
 		if err != nil {
 			log.Fatal(err)
 		}
 		fmt.Println()
 
-		config = netconf.SSHConfigPassword(*username, string(bytePassword))
+		config = &ssh.ClientConfig{
+			User: *username,
+			Auth: []ssh.AuthMethod{
+				ssh.Password(string(password)),
+			},
+			HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		}
 	}
 	return config
 }
@@ -95,9 +156,8 @@ func main() {
 		*username = r.Text()
 	}
 
-	config := BuildConfig()
-
-	s, err := netconf.DialSSH(*host, config)
+	sshConfig := buildConfig()
+	s, err := netconf.DialSSH(*host, sshConfig)
 	if err != nil {
 		log.Fatal(err)
 	}
