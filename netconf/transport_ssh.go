@@ -127,7 +127,7 @@ func DialSSHTimeout(target string, config *ssh.ClientConfig, timeout time.Durati
 	}
 
 	conn := &deadlineConn{Conn: bareConn, timeout: timeout}
-	t, err := connToTransport(conn, bareConn.RemoteAddr().String(), config)
+	t, err := connToTransport(conn, "", config)
 	if err != nil {
 		return nil, err
 	}
@@ -213,6 +213,10 @@ func SSHConfigPubKeyAgent(user string) (*ssh.ClientConfig, error) {
 }
 
 func connToTransport(conn net.Conn, addr string, config *ssh.ClientConfig) (*TransportSSH, error) {
+	if addr == "" {
+		addr = conn.RemoteAddr().String()
+	}
+
 	c, chans, reqs, err := ssh.NewClientConn(conn, addr, config)
 	if err != nil {
 		return nil, err
