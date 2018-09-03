@@ -71,11 +71,7 @@ func (t *TransportSSH) Dial(target string, config *ssh.ClientConfig) error {
 	}
 
 	err = t.setupSession()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (t *TransportSSH) setupSession() error {
@@ -177,8 +173,7 @@ func SSHConfigPubKeyFile(user string, file string, passphrase string) (*ssh.Clie
 	}
 
 	if x509.IsEncryptedPEMBlock(block) {
-		b := block.Bytes
-		b, err = x509.DecryptPEMBlock(block, []byte(passphrase))
+		b, err := x509.DecryptPEMBlock(block, []byte(passphrase))
 		if err != nil {
 			return nil, err
 		}

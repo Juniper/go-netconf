@@ -5,7 +5,7 @@
 // license that can be found in the LICENSE file.
 
 /*
-This library is a simple NETCONF client based on RFC6241 and RFC6242
+Package netconf provides support for a a simple NETCONF client based on RFC6241 and RFC6242
 (although not fully compliant yet).
 */
 package netconf

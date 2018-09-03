@@ -30,6 +30,7 @@ var (
 	agent        = flag.Bool("agent", false, "Use SSH agent for public key authentication")
 )
 
+// SystemInformation provides a representation of the system-information container
 type SystemInformation struct {
 	HardwareModel string `xml:"system-information>hardware-model"`
 	OsName        string `xml:"system-information>os-name"`
@@ -38,10 +39,11 @@ type SystemInformation struct {
 	HostName      string `xml:"system-information>host-name"`
 }
 
+// BuildConfig captures information from the console to build a SSH Client Config
 func BuildConfig() *ssh.ClientConfig {
 	var config *ssh.ClientConfig
 	var pass string
-	if *pubkey == true {
+	if *pubkey {
 		if *agent {
 			var err error
 			config, err = netconf.SSHConfigPubKeyAgent(*username)
@@ -58,7 +60,7 @@ func BuildConfig() *ssh.ClientConfig {
 					var readpass []byte
 					var err error
 					fmt.Printf("Enter Passphrase for %s: ", *key)
-					readpass, err = terminal.ReadPassword(int(syscall.Stdin))
+					readpass, err = terminal.ReadPassword(syscall.Stdin)
 					if err != nil {
 						log.Fatal(err)
 					}
@@ -74,7 +76,7 @@ func BuildConfig() *ssh.ClientConfig {
 		}
 	} else {
 		fmt.Printf("Enter Password: ")
-		bytePassword, err := terminal.ReadPassword(int(syscall.Stdin))
+		bytePassword, err := terminal.ReadPassword(syscall.Stdin)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -109,7 +111,10 @@ func main() {
 	}
 	var q SystemInformation
 
-	xml.Unmarshal([]byte(reply.RawReply), &q)
+	err = xml.Unmarshal([]byte(reply.RawReply), &q)
+	if err != nil {
+		log.Fatal(err)
+	}
 	fmt.Printf("hostname: %s\n", q.HostName)
 	fmt.Printf("model: %s\n", q.HardwareModel)
 	fmt.Printf("version: %s\n", q.OsVersion)
