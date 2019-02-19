@@ -15,7 +15,7 @@ This library is a simple NETCONF client based on [RFC6241](http://tools.ietf.org
 * Independent of XML library.  Free to choose encoding/xml or another third party library to parse the results.
 
 ## Install
-* Requires Go 1.4 or later!
+* Requires Go 1.9 or later!
 * `go get github.com/Juniper/go-netconf/netconf`
 
 ## Example
