@@ -12,6 +12,7 @@ package netconf
 
 import (
 	"encoding/xml"
+	"strings"
 )
 
 // Session defines the necessary components for a NETCONF session
@@ -69,6 +70,15 @@ func NewSession(t Transport) *Session {
 
 	// Send our hello using default capabilities.
 	t.SendHello(&HelloMessage{Capabilities: DefaultCapabilities})
+
+	// Set Transport version
+	t.SetVersion("v1.0")
+	for _, capability := range s.ServerCapabilities {
+		if strings.Contains(capability, "urn:ietf:params:netconf:base:1.1") {
+			t.SetVersion("v1.1")
+			break
+		}
+	}
 
 	return s
 }

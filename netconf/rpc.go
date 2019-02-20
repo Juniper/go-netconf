@@ -14,6 +14,15 @@ import (
 	"io"
 )
 
+const (
+	editConfigXml = `<edit-config>
+<target><%s/></target>
+<default-operation>merge</default-operation>
+<error-option>rollback-on-error</error-option>
+<config>%s</config>
+</edit-config>`
+)
+
 // RPCMessage represents an RPC Message to be sent.
 type RPCMessage struct {
 	MessageID string
@@ -123,6 +132,16 @@ func MethodUnlock(target string) RawMethod {
 // MethodGetConfig files a NETCONF get-config source request with the remote host
 func MethodGetConfig(source string) RawMethod {
 	return RawMethod(fmt.Sprintf("<get-config><source><%s/></source></get-config>", source))
+}
+
+// MethodGet files a NETCONF get source request with the remote host
+func MethodGet(filterType string, dataXml string) RawMethod {
+	return RawMethod(fmt.Sprintf("<get><filter type=\"%s\">%s</filter></get>", filterType, dataXml))
+}
+
+// MethodEditConfig files a NETCONF edit-config request with the remote host
+func MethodEditConfig(database string, dataXml string) RawMethod {
+	return RawMethod(fmt.Sprintf(editConfigXml, database, dataXml))
 }
 
 var msgID = uuid
