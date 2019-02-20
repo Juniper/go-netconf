@@ -16,12 +16,14 @@ import (
 
 const (
 	// msgSeperator is used to separate sent messages via NETCONF
-	msgSeperator = "]]>]]>"
+	msgSeperator     = "]]>]]>"
+	msgSeperator_v11 = "\n##\n"
 )
 
 // DefaultCapabilities sets the default capabilities of the client library
 var DefaultCapabilities = []string{
 	"urn:ietf:params:netconf:base:1.0",
+	"urn:ietf:params:netconf:base:1.1",
 }
 
 // HelloMessage is used when bringing up a NETCONF session
@@ -39,27 +41,52 @@ type Transport interface {
 	Close() error
 	ReceiveHello() (*HelloMessage, error)
 	SendHello(*HelloMessage) error
+	SetVersion(version string)
 }
 
 type transportBasicIO struct {
 	io.ReadWriteCloser
+	//new add
+	version string
+}
+
+func (t *transportBasicIO) SetVersion(version string) {
+	t.version = version
 }
 
 // Sends a well formated NETCONF rpc message as a slice of bytes adding on the
 // nessisary framining messages.
 func (t *transportBasicIO) Send(data []byte) error {
-	t.Write(data)
-	// Pad to make sure the msgSeparator isn't sent across a 4096-byte boundary
-	if (len(data)+len(msgSeperator))%4096 < 6 {
-		t.Write([]byte("      "))
+	var seperator []byte
+	var dataInfo []byte
+	//headlen := 0
+	if t.version == "v1.1" {
+		seperator = append(seperator, []byte(msgSeperator_v11)...)
+	} else {
+		seperator = append(seperator, []byte(msgSeperator)...)
 	}
-	t.Write([]byte(msgSeperator))
-	t.Write([]byte("\n"))
+
+	if t.version == "v1.1" {
+		header := fmt.Sprintf("\n#%d\n", len(string(data)))
+		dataInfo = append(dataInfo, header...)
+		//t.Write([]byte(header))
+		//headlen = len([]byte(header))
+	}
+	dataInfo = append(dataInfo, data...)
+	dataInfo = append(dataInfo, seperator...)
+	t.Write(dataInfo)
+
 	return nil // TODO: Implement error handling!
 }
 
 func (t *transportBasicIO) Receive() ([]byte, error) {
-	return t.WaitForBytes([]byte(msgSeperator))
+	var seperator []byte
+	if t.version == "v1.1" {
+		seperator = append(seperator, []byte(msgSeperator_v11)...)
+	} else {
+		seperator = append(seperator, []byte(msgSeperator)...)
+	}
+	return t.WaitForBytes([]byte(seperator))
 }
 
 func (t *transportBasicIO) SendHello(hello *HelloMessage) error {
@@ -94,7 +121,7 @@ func (t *transportBasicIO) Writeln(b []byte) (int, error) {
 
 func (t *transportBasicIO) WaitForFunc(f func([]byte) (int, error)) ([]byte, error) {
 	var out bytes.Buffer
-	buf := make([]byte, 4096)
+	buf := make([]byte, 8192)
 
 	pos := 0
 	for {
