@@ -97,8 +97,8 @@ func (t *TransportSSH) setupSession() error {
 }
 
 // NewSSHSession creates a new NETCONF session using an existing net.Conn.
-func NewSSHSession(conn net.Conn, config *ssh.ClientConfig) (*Session, error) {
-	t, err := connToTransport(conn, config)
+func NewSSHSession(conn net.Conn, addr string, config *ssh.ClientConfig) (*Session, error) {
+	t, err := connToTransport(conn, addr, config)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +127,7 @@ func DialSSHTimeout(target string, config *ssh.ClientConfig, timeout time.Durati
 	}
 
 	conn := &deadlineConn{Conn: bareConn, timeout: timeout}
-	t, err := connToTransport(conn, config)
+	t, err := connToTransport(conn, conn.RemoteAddr().String(), config)
 	if err != nil {
 		return nil, err
 	}
@@ -212,8 +212,8 @@ func SSHConfigPubKeyAgent(user string) (*ssh.ClientConfig, error) {
 	}, nil
 }
 
-func connToTransport(conn net.Conn, config *ssh.ClientConfig) (*TransportSSH, error) {
-	c, chans, reqs, err := ssh.NewClientConn(conn, conn.RemoteAddr().String(), config)
+func connToTransport(conn net.Conn, addr string, config *ssh.ClientConfig) (*TransportSSH, error) {
+	c, chans, reqs, err := ssh.NewClientConn(conn, addr, config)
 	if err != nil {
 		return nil, err
 	}
