@@ -49,8 +49,9 @@ type RPCReply struct {
 	XMLName  xml.Name   `xml:"rpc-reply"`
 	Errors   []RPCError `xml:"rpc-error,omitempty"`
 	Data     string     `xml:",innerxml"`
-	Ok       bool       `xml:",omitempty"`
+	Ok       bool       `xml:"-"`
 	RawReply string     `xml:"-"`
+	OkPtr    *bool      `xml:"ok,omitempty"`
 }
 
 func newRPCReply(rawXML []byte, ErrOnWarning bool) (*RPCReply, error) {
@@ -59,6 +60,10 @@ func newRPCReply(rawXML []byte, ErrOnWarning bool) (*RPCReply, error) {
 
 	if err := xml.Unmarshal(rawXML, reply); err != nil {
 		return nil, err
+	}
+
+	if reply.OkPtr != nil {
+		reply.Ok = true
 	}
 
 	if reply.Errors != nil {
