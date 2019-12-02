@@ -22,9 +22,13 @@ type Session struct {
 	ErrOnWarning       bool
 }
 
-// Close is used to close and end a transport session
-func (s *Session) Close() error {
-	return s.Transport.Close()
+// Close is used to close the current netconf session and optionally end a transport session
+func (s *Session) Close(closeTransport bool) (*RPCReply, error) {
+	reply, err := s.Exec(RawMethod("<close-session/>"))
+	if closeTransport {
+		err = s.Transport.Close()
+	}
+	return reply, err
 }
 
 // Exec is used to execute an RPC method or methods
