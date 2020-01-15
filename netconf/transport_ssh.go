@@ -106,6 +106,16 @@ func NewSSHSession(conn net.Conn, config *ssh.ClientConfig) (*Session, error) {
 	return NewSession(t), nil
 }
 
+// NewSSHSession2 creates a new NETCONF session using an existing ssh client.
+func NewSSHSession2(client *ssh.Client, caps ...string) (*Session, error) {
+	t, err := connToTransport2(client)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewSession(t, caps...), nil
+}
+
 // DialSSH creates a new NETCONF session using a SSH Transport.
 // See TransportSSH.Dial for arguments.
 func DialSSH(target string, config *ssh.ClientConfig) (*Session, error) {
@@ -225,9 +235,21 @@ func connToTransport(conn net.Conn, config *ssh.ClientConfig) (*TransportSSH, er
 
 	err = t.setupSession()
 	if err != nil {
+		t.Close()
 		return nil, err
 	}
 
+	return t, nil
+}
+
+func connToTransport2(client *ssh.Client) (*TransportSSH, error) {
+	t := &TransportSSH{}
+	t.sshClient = client
+	err := t.setupSession()
+	if err != nil {
+		t.Close()
+		return nil, err
+	}
 	return t, nil
 }
 
