@@ -41,12 +41,18 @@ func (t *TransportSSH) Close() error {
 	// Close the SSH Session if we have one
 	if t.sshSession != nil {
 		if err := t.sshSession.Close(); err != nil {
+			// If we receive an error when trying to close the session, then
+			// lets try to close the socket, otherwise it will be left open
+			t.sshClient.Close()
 			return err
 		}
 	}
 
 	// Close the socket
-	return t.sshClient.Close()
+	if t.sshClient != nil {
+		return t.sshClient.Close()
+	}
+	return fmt.Errorf("No connection to close")
 }
 
 // Dial connects and establishes SSH sessions
