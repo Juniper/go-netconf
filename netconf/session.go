@@ -36,9 +36,6 @@ func (s *Session) Exec(methods ...RPCMethod) (*RPCReply, error) {
 		return nil, err
 	}
 
-	header := []byte(xml.Header)
-	request = append(header, request...)
-
 	err = s.Transport.Send(request)
 	if err != nil {
 		return nil, err
@@ -58,17 +55,18 @@ func (s *Session) Exec(methods ...RPCMethod) (*RPCReply, error) {
 }
 
 // NewSession creates a new NETCONF session using the provided transport layer.
-func NewSession(t Transport) *Session {
+func NewSession(t Transport, caps ...string) *Session {
 	s := new(Session)
 	s.Transport = t
+	cap := DefaultCapabilities
+	cap = append(cap, caps...)
+	// Send our hello using default capabilities.
+	t.SendHello(&HelloMessage{Capabilities: cap})
 
 	// Receive Servers Hello message
 	serverHello, _ := t.ReceiveHello()
 	s.SessionID = serverHello.SessionID
 	s.ServerCapabilities = serverHello.Capabilities
-
-	// Send our hello using default capabilities.
-	t.SendHello(&HelloMessage{Capabilities: DefaultCapabilities})
 
 	return s
 }
