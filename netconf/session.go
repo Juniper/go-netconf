@@ -55,7 +55,7 @@ func (s *Session) Exec(methods ...RPCMethod) (*RPCReply, error) {
 
 	reply, err := newRPCReply(rawXML, s.ErrOnWarning, rpc.MessageID)
 	if err != nil {
-		return nil, err
+		return reply, err
 	}
 
 	return reply, nil
