@@ -136,7 +136,9 @@ func DialSSHTimeout(target string, config *ssh.ClientConfig, timeout time.Durati
 	conn := &deadlineConn{Conn: bareConn, timeout: timeout}
 	t, err := connToTransport(conn, config)
 	if err != nil {
-		t.Close()
+		if t != nil {
+			t.Close()
+		}
 		return nil, err
 	}
 
