@@ -182,28 +182,7 @@ func SSHConfigPubKeyFile(user string, file string, passphrase string) (*ssh.Clie
 		return nil, fmt.Errorf("pem: unable to decode file %s", file)
 	}
 
-	if x509.IsEncryptedPEMBlock(block) {
-		b, err := x509.DecryptPEMBlock(block, []byte(passphrase))
-		if err != nil {
-			return nil, err
-		}
-		buf = pem.EncodeToMemory(&pem.Block{
-			Type:  block.Type,
-			Bytes: b,
-		})
-	}
-
-	key, err := ssh.ParsePrivateKey(buf)
-	if err != nil {
-		return nil, err
-	}
-	return &ssh.ClientConfig{
-		User: user,
-		Auth: []ssh.AuthMethod{
-			ssh.PublicKeys(key),
-		},
-	}, nil
-
+	return sshConfigPubKeyDecoded(user, block, buf, passphrase)
 }
 
 // SSHConfigPubKeyPem is a convenience function that takes a username, private key
@@ -215,6 +194,10 @@ func SSHConfigPubKeyPem(user string, key []byte, passphrase string) (*ssh.Client
 		return nil, fmt.Errorf("pem: unable to decode private key in PEM format")
 	}
 
+	return sshConfigPubKeyDecoded(user, block, key, passphrase)
+}
+
+func sshConfigPubKeyDecoded(user string, block *pem.Block, key []byte, passphrase string) (*ssh.ClientConfig, error) {
 	if x509.IsEncryptedPEMBlock(block) {
 		b, err := x509.DecryptPEMBlock(block, []byte(passphrase))
 		if err != nil {
@@ -225,18 +208,17 @@ func SSHConfigPubKeyPem(user string, key []byte, passphrase string) (*ssh.Client
 			Bytes: b,
 		})
 	}
-
 	keySign, err := ssh.ParsePrivateKey(key)
 	if err != nil {
 		return nil, err
 	}
+
 	return &ssh.ClientConfig{
 		User: user,
 		Auth: []ssh.AuthMethod{
 			ssh.PublicKeys(keySign),
 		},
 	}, nil
-
 }
 
 // SSHConfigPubKeyAgent is a convience function that takes a username and
