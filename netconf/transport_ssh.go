@@ -38,6 +38,11 @@ type TransportSSH struct {
 
 // Close closes an existing SSH session and socket if they exist.
 func (t *TransportSSH) Close() error {
+	// If TransportSSH is nil ignore closing ssh session
+	if t == nil {
+		return nil
+	}
+
 	// Close the SSH Session if we have one
 	if t.sshSession != nil {
 		if err := t.sshSession.Close(); err != nil {
