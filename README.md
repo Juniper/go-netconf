@@ -6,7 +6,7 @@ This is our fork of go-netconf
 
 ```
 # create the upstream
-git remote add upstream https://github.com/Juniper/go-netconf.git
+git remote add upstream https://github.com/mistsys/go-netconf.git
 
 # now you can merge / cherry-pick what you want
 ```

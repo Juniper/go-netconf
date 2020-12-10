@@ -77,6 +77,8 @@ func newRPCReply(rawXML []byte, ErrOnWarning bool, messageID string) (*RPCReply,
 				return reply, &rpcErr
 			}
 		}
+	} else {
+		reply.Ok = true
 	}
 
 	return reply, nil

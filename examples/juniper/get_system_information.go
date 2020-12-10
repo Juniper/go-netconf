@@ -15,7 +15,7 @@ import (
 	"os"
 	"syscall"
 
-	"github.com/Juniper/go-netconf/netconf"
+	"github.com/mistsys/go-netconf/netconf"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/terminal"
 )
@@ -103,7 +103,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer s.Close()
+	defer s.Close(true)
 
 	reply, err := s.Exec(netconf.RawMethod("<get-system-information/>"))
 	if err != nil {

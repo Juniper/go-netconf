@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/Juniper/go-netconf/netconf"
+	"github.com/mistsys/go-netconf/netconf"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -27,7 +27,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	defer s.Close()
+	defer s.Close(true)
 
 	fmt.Println(s.ServerCapabilities)
 	fmt.Println(s.SessionID)
