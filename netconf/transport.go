@@ -48,13 +48,14 @@ type transportBasicIO struct {
 // Sends a well formated NETCONF rpc message as a slice of bytes adding on the
 // nessisary framining messages.
 func (t *transportBasicIO) Send(data []byte) error {
-	t.Write(data)
-	// Pad to make sure the msgSeparator isn't sent across a 4096-byte boundary
-	if (len(data)+len(msgSeperator))%4096 < 6 {
-		t.Write([]byte("      "))
-	}
-	t.Write([]byte(msgSeperator))
-	t.Write([]byte("\n"))
+	var seperator []byte
+	var dataInfo []byte
+
+	seperator = append(seperator, []byte(msgSeperator)...)
+	dataInfo = append(dataInfo, data...)
+	dataInfo = append(dataInfo, seperator...)
+	t.Write(dataInfo)
+
 	return nil // TODO: Implement error handling!
 }
 
