@@ -64,9 +64,10 @@ type RPCReply struct {
 	XMLName   xml.Name   `xml:"rpc-reply"`
 	Errors    []RPCError `xml:"rpc-error,omitempty"`
 	Data      string     `xml:",innerxml"`
-	Ok        bool       `xml:",omitempty"`
+	Ok        bool       `xml:"-"`
 	RawReply  string     `xml:"-"`
 	MessageID string     `xml:"-"`
+	OkPtr     *bool      `xml:"ok,omitempty"`
 }
 
 func newRPCReply(rawXML []byte, ErrOnWarning bool, messageID string) (*RPCReply, error) {
@@ -79,6 +80,10 @@ func newRPCReply(rawXML []byte, ErrOnWarning bool, messageID string) (*RPCReply,
 
 	// will return a valid reply so setting Requests message id
 	reply.MessageID = messageID
+
+	if reply.OkPtr != nil {
+		reply.Ok = true
+	}
 
 	if reply.Errors != nil {
 		for _, rpcErr := range reply.Errors {

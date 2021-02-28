@@ -164,7 +164,7 @@ var RPCReplytests = []struct {
 </commit-results>
 <ok/>
 </rpc-reply>`,
-		false,
+		true,
 	},
 	{
 		`
@@ -219,7 +219,7 @@ configuration check-out failed: (missing mandatory statements)
 </commit-results>
 <ok/>
 </rpc-reply>`,
-		false,
+		true,
 	},
 }
 
@@ -234,6 +234,9 @@ func TestNewRPCReply(t *testing.T) {
 		}
 		if reply.MessageID != "101" {
 			t.Errorf("newRPCReply(%q) did not set message-id to input, got %q", "101", reply.MessageID)
+		}
+		if reply.Ok != tc.replyOk {
+			t.Errorf("newRPCReply(%q): expected ok %t, got %t", tc.rawXML, tc.replyOk, reply.Ok)
 		}
 	}
 }
