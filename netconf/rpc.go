@@ -12,6 +12,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"strings"
 )
 
 // RPCMessage represents an RPC Message to be sent.
@@ -63,23 +64,30 @@ type RPCReply struct {
 func newRPCReply(rawXML []byte, ErrOnWarning bool, messageID string) (*RPCReply, error) {
 	reply := &RPCReply{}
 	reply.RawReply = string(rawXML)
+	fmt.Println(reply.RawReply)
 
 	if err := xml.Unmarshal(rawXML, reply); err != nil {
 		return nil, err
 	}
 
+	fmt.Println(reply)
+
 	// will return a valid reply so setting Requests message id
 	reply.MessageID = messageID
 
+	fmt.Println("check errors")
+	fmt.Println(reply.Errors)
 	if reply.Errors != nil {
 		for _, rpcErr := range reply.Errors {
-			if rpcErr.Severity == "error" || ErrOnWarning {
+			fmt.Println(rpcErr)
+			if !strings.Contains(reply.RawReply, "warning") && (rpcErr.Severity == "error") {
+				fmt.Println("return")
 				return reply, &rpcErr
 			}
 		}
-	} else {
-		reply.Ok = true
 	}
+
+	reply.Ok = true
 
 	return reply, nil
 }

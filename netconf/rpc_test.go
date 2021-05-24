@@ -164,12 +164,11 @@ var RPCReplytests = []struct {
 </commit-results>
 <ok/>
 </rpc-reply>`,
-		false,
+		true,
 	},
 	{
 		`
 <rpc-reply xmlns="urn:ietf:params:xml:ns:netconf:base:1.0" xmlns:junos="http://xml.juniper.net/junos/15.1F4/junos">
-<commit-results>
 <rpc-error>
 <error-type>application</error-type>
 <error-tag>invalid-value</error-tag>
@@ -188,14 +187,12 @@ var RPCReplytests = []struct {
 configuration check-out failed: (missing mandatory statements)
 </error-message>
 </rpc-error>
-</commit-results>
 </rpc-reply>`,
 		false,
 	},
 	{
 		`
 <rpc-reply xmlns="urn:ietf:params:xml:ns:netconf:base:1.0" xmlns:junos="http://xml.juniper.net/junos/16.1R3/junos">
-<commit-results>
 <rpc-error>
 <error-severity>warning</error-severity>
 <error-path>[edit protocols]</error-path>
@@ -216,10 +213,9 @@ configuration check-out failed: (missing mandatory statements)
 <name>fpc0</name>
 <commit-check-success/>
 </routing-engine>
-</commit-results>
 <ok/>
 </rpc-reply>`,
-		false,
+		true,
 	},
 }
 
@@ -227,13 +223,16 @@ func TestNewRPCReply(t *testing.T) {
 	for _, tc := range RPCReplytests {
 		reply, err := newRPCReply([]byte(tc.rawXML), false, "101")
 		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
+			t.Errorf("unexpected error: %v", err)
 		}
 		if reply.RawReply != tc.rawXML {
 			t.Errorf("newRPCReply(%q) did not set RawReply to input, got %q", tc.rawXML, reply.RawReply)
 		}
 		if reply.MessageID != "101" {
 			t.Errorf("newRPCReply(%q) did not set message-id to input, got %q", "101", reply.MessageID)
+		}
+		if reply.Ok != tc.replyOk {
+			t.Errorf("newRPCReply() rpc reply does not match %v vs. %v", reply.Ok, tc.replyOk)
 		}
 	}
 }
