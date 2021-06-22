@@ -156,6 +156,7 @@ func TestUUIDChar(t *testing.T) {
 var RPCReplytests = []struct {
 	rawXML  string
 	replyOk bool
+	Error   bool
 }{
 	{
 		`
@@ -165,6 +166,7 @@ var RPCReplytests = []struct {
 <ok/>
 </rpc-reply>`,
 		true,
+		false,
 	},
 	{
 		`
@@ -189,6 +191,7 @@ configuration check-out failed: (missing mandatory statements)
 </rpc-error>
 </rpc-reply>`,
 		false,
+		true,
 	},
 	{
 		`
@@ -216,13 +219,40 @@ configuration check-out failed: (missing mandatory statements)
 <ok/>
 </rpc-reply>`,
 		true,
+		false,
+	},
+	{
+		`
+<rpc-reply xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"
+xmlns:junos="http://xml.juniper.net/junos/21.1R0/junos">
+<rpc-error>
+<error-severity>warning</error-severity>
+<source-daemon>
+rtlogd
+</source-daemon>
+<error-path>
+[edit security log]
+</error-path>
+<error-info>
+<bad-element>
+report
+</bad-element>
+</error-info>
+<error-message>
+It is recommended to use Stream Logging to an external logging server.
+</error-message>
+</rpc-error>
+<ok/>
+</rpc-reply>`,
+		false,
+		false,
 	},
 }
 
 func TestNewRPCReply(t *testing.T) {
 	for _, tc := range RPCReplytests {
 		reply, err := newRPCReply([]byte(tc.rawXML), false, "101")
-		if err != nil {
+		if (err == nil) == tc.Error {
 			t.Errorf("unexpected error: %v", err)
 		}
 		if reply.RawReply != tc.rawXML {
@@ -230,9 +260,6 @@ func TestNewRPCReply(t *testing.T) {
 		}
 		if reply.MessageID != "101" {
 			t.Errorf("newRPCReply(%q) did not set message-id to input, got %q", "101", reply.MessageID)
-		}
-		if reply.Ok != tc.replyOk {
-			t.Errorf("newRPCReply() rpc reply does not match %v vs. %v", reply.Ok, tc.replyOk)
 		}
 	}
 }
