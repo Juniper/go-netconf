@@ -9,6 +9,7 @@ package netconf
 import (
 	"bytes"
 	"encoding/xml"
+	"errors"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -156,7 +157,7 @@ func TestUUIDChar(t *testing.T) {
 var RPCReplytests = []struct {
 	rawXML  string
 	replyOk bool
-	Error   bool
+	err     error
 }{
 	{
 		`
@@ -166,7 +167,7 @@ var RPCReplytests = []struct {
 <ok/>
 </rpc-reply>`,
 		true,
-		false,
+		nil,
 	},
 	{
 		`
@@ -191,7 +192,7 @@ configuration check-out failed: (missing mandatory statements)
 </rpc-error>
 </rpc-reply>`,
 		false,
-		true,
+		errors.New(`netconf rpc [error] 'mgd: Missing mandatory statement: 'root-authentication''`),
 	},
 	{
 		`
@@ -219,7 +220,7 @@ configuration check-out failed: (missing mandatory statements)
 <ok/>
 </rpc-reply>`,
 		true,
-		false,
+		nil,
 	},
 	{
 		`
@@ -245,15 +246,15 @@ It is recommended to use Stream Logging to an external logging server.
 <ok/>
 </rpc-reply>`,
 		false,
-		false,
+		nil,
 	},
 }
 
 func TestNewRPCReply(t *testing.T) {
 	for _, tc := range RPCReplytests {
 		reply, err := newRPCReply([]byte(tc.rawXML), false, "101")
-		if (err == nil) == tc.Error {
-			t.Errorf("unexpected error: %v", err)
+		if err != tc.err {
+			t.Errorf("unexpected error: %v", tc.err)
 		}
 		if reply.RawReply != tc.rawXML {
 			t.Errorf("newRPCReply(%q) did not set RawReply to input, got %q", tc.rawXML, reply.RawReply)
