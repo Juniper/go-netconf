@@ -253,7 +253,7 @@ It is recommended to use Stream Logging to an external logging server.
 func TestNewRPCReply(t *testing.T) {
 	for _, tc := range RPCReplytests {
 		reply, err := newRPCReply([]byte(tc.rawXML), false, "101")
-		if err != tc.err {
+		if err != nil && tc.err != nil && err.Error() != tc.err.Error() {
 			t.Errorf("unexpected error: %v", tc.err)
 		}
 		if reply.RawReply != tc.rawXML {
