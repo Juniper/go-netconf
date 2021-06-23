@@ -9,6 +9,7 @@ package netconf
 import (
 	"bytes"
 	"encoding/xml"
+	"errors"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -156,6 +157,7 @@ func TestUUIDChar(t *testing.T) {
 var RPCReplytests = []struct {
 	rawXML  string
 	replyOk bool
+	err     error
 }{
 	{
 		`
@@ -164,12 +166,12 @@ var RPCReplytests = []struct {
 </commit-results>
 <ok/>
 </rpc-reply>`,
-		false,
+		true,
+		nil,
 	},
 	{
 		`
 <rpc-reply xmlns="urn:ietf:params:xml:ns:netconf:base:1.0" xmlns:junos="http://xml.juniper.net/junos/15.1F4/junos">
-<commit-results>
 <rpc-error>
 <error-type>application</error-type>
 <error-tag>invalid-value</error-tag>
@@ -188,14 +190,13 @@ var RPCReplytests = []struct {
 configuration check-out failed: (missing mandatory statements)
 </error-message>
 </rpc-error>
-</commit-results>
 </rpc-reply>`,
 		false,
+		errors.New(`netconf rpc [error] 'mgd: Missing mandatory statement: 'root-authentication''`),
 	},
 	{
 		`
 <rpc-reply xmlns="urn:ietf:params:xml:ns:netconf:base:1.0" xmlns:junos="http://xml.juniper.net/junos/16.1R3/junos">
-<commit-results>
 <rpc-error>
 <error-severity>warning</error-severity>
 <error-path>[edit protocols]</error-path>
@@ -216,18 +217,44 @@ configuration check-out failed: (missing mandatory statements)
 <name>fpc0</name>
 <commit-check-success/>
 </routing-engine>
-</commit-results>
+<ok/>
+</rpc-reply>`,
+		true,
+		nil,
+	},
+	{
+		`
+<rpc-reply xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"
+xmlns:junos="http://xml.juniper.net/junos/21.1R0/junos">
+<rpc-error>
+<error-severity>warning</error-severity>
+<source-daemon>
+rtlogd
+</source-daemon>
+<error-path>
+[edit security log]
+</error-path>
+<error-info>
+<bad-element>
+report
+</bad-element>
+</error-info>
+<error-message>
+It is recommended to use Stream Logging to an external logging server.
+</error-message>
+</rpc-error>
 <ok/>
 </rpc-reply>`,
 		false,
+		nil,
 	},
 }
 
 func TestNewRPCReply(t *testing.T) {
 	for _, tc := range RPCReplytests {
 		reply, err := newRPCReply([]byte(tc.rawXML), false, "101")
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
+		if err != nil && tc.err != nil && err.Error() != tc.err.Error() {
+			t.Errorf("unexpected error: %v", tc.err)
 		}
 		if reply.RawReply != tc.rawXML {
 			t.Errorf("newRPCReply(%q) did not set RawReply to input, got %q", tc.rawXML, reply.RawReply)
