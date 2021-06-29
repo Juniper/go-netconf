@@ -36,7 +36,8 @@ type TransportSSH struct {
 	sshSession *ssh.Session
 }
 
-// Close closes an existing SSH session and socket if they exist.
+// Close closes an existing SSH session.
+// The original implementation closed the socket as well.
 func (t *TransportSSH) Close() error {
 	// Close the SSH Session if we have one
 	if t.sshSession != nil {
@@ -45,8 +46,9 @@ func (t *TransportSSH) Close() error {
 		}
 	}
 
+	return nil
 	// Close the socket
-	return t.sshClient.Close()
+	//return t.sshClient.Close()
 }
 
 // Dial connects and establishes SSH sessions

@@ -103,7 +103,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer s.Close(true)
+	defer s.Close()
 
 	reply, err := s.Exec(netconf.RawMethod("<get-system-information/>"))
 	if err != nil {
