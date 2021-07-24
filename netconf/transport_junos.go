@@ -11,7 +11,7 @@ import (
 // TransportJunos maintains the information necessary to communicate with Junos
 // via local shell NETCONF interface.
 type TransportJunos struct {
-	transportBasicIO
+	TransportBasicIO
 	cmd *exec.Cmd
 }
 

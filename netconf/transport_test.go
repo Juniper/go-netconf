@@ -30,7 +30,7 @@ func (nc *nilCloser) Close() error {
 }
 
 type transportTest struct {
-	transportBasicIO
+	TransportBasicIO
 }
 
 func newTransportTest(input string) (*transportTest, *bytes.Buffer) {
