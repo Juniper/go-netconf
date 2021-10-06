@@ -14,15 +14,6 @@ import (
 	"io"
 )
 
-const (
-	editConfigXml = `<edit-config>
-<target><%s/></target>
-<default-operation>merge</default-operation>
-<error-option>rollback-on-error</error-option>
-<config>%s</config>
-</edit-config>`
-)
-
 // RPCMessage represents an RPC Message to be sent.
 type RPCMessage struct {
 	MessageID string
@@ -61,24 +52,21 @@ func (m *RPCMessage) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 
 // RPCReply defines a reply to a RPC request
 type RPCReply struct {
-	XMLName   xml.Name   `xml:"rpc-reply"`
-	Errors    []RPCError `xml:"rpc-error,omitempty"`
-	Data      string     `xml:",innerxml"`
-	Ok        bool       `xml:",omitempty"`
-	RawReply  string     `xml:"-"`
-	MessageID string     `xml:"-"`
+	XMLName  xml.Name   `xml:"rpc-reply"`
+	Errors   []RPCError `xml:"rpc-error,omitempty"`
+	Data     string     `xml:",innerxml"`
+	Ok       bool       `xml:",omitempty"`
+	RawReply string     `xml:"-"`
 }
 
-func newRPCReply(rawXML []byte, ErrOnWarning bool, messageID string) (*RPCReply, error) {
+// NewRPCReply creates a new RPC Reply
+func NewRPCReply(rawXML []byte, ErrOnWarning bool) (*RPCReply, error) {
 	reply := &RPCReply{}
 	reply.RawReply = string(rawXML)
 
 	if err := xml.Unmarshal(rawXML, reply); err != nil {
 		return nil, err
 	}
-
-	// will return a valid reply so setting Requests message id
-	reply.MessageID = messageID
 
 	if reply.Errors != nil {
 		for _, rpcErr := range reply.Errors {
@@ -132,16 +120,6 @@ func MethodUnlock(target string) RawMethod {
 // MethodGetConfig files a NETCONF get-config source request with the remote host
 func MethodGetConfig(source string) RawMethod {
 	return RawMethod(fmt.Sprintf("<get-config><source><%s/></source></get-config>", source))
-}
-
-// MethodGet files a NETCONF get source request with the remote host
-func MethodGet(filterType string, dataXml string) RawMethod {
-	return RawMethod(fmt.Sprintf("<get><filter type=\"%s\">%s</filter></get>", filterType, dataXml))
-}
-
-// MethodEditConfig files a NETCONF edit-config request with the remote host
-func MethodEditConfig(database string, dataXml string) RawMethod {
-	return RawMethod(fmt.Sprintf(editConfigXml, database, dataXml))
 }
 
 var msgID = uuid

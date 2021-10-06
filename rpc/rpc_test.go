@@ -146,7 +146,7 @@ func TestUUIDChar(t *testing.T) {
 	u := uuid()
 
 	for _, v := range u {
-		if !valid(int(v)) {
+		if valid(int(v)) == false {
 			t.Errorf("invalid char %s", string(v))
 
 		}
@@ -225,15 +225,12 @@ configuration check-out failed: (missing mandatory statements)
 
 func TestNewRPCReply(t *testing.T) {
 	for _, tc := range RPCReplytests {
-		reply, err := newRPCReply([]byte(tc.rawXML), false, "101")
+		reply, err := NewRPCReply([]byte(tc.rawXML), false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 		if reply.RawReply != tc.rawXML {
 			t.Errorf("newRPCReply(%q) did not set RawReply to input, got %q", tc.rawXML, reply.RawReply)
-		}
-		if reply.MessageID != "101" {
-			t.Errorf("newRPCReply(%q) did not set message-id to input, got %q", "101", reply.MessageID)
 		}
 	}
 }

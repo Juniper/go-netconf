@@ -30,7 +30,7 @@ func (nc *nilCloser) Close() error {
 }
 
 type transportTest struct {
-	transportBasicIO
+	TransportBasicIO
 }
 
 func newTransportTest(input string) (*transportTest, *bytes.Buffer) {
@@ -108,7 +108,8 @@ func TestSendHello(t *testing.T) {
 			name:  "default",
 			input: &HelloMessage{Capabilities: DefaultCapabilities},
 			expected: `<?xml version="1.0" encoding="UTF-8"?>
-<hello xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"><capabilities><capability>urn:ietf:params:netconf:base:1.0</capability><capability>urn:ietf:params:netconf:base:1.1</capability></capabilities></hello>]]>]]>`,
+<hello xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"><capabilities><capability>urn:ietf:params:netconf:base:1.0</capability></capabilities></hello>]]>]]>
+`,
 		},
 	}
 

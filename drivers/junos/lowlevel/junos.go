@@ -6,12 +6,15 @@ package netconf
 
 import (
 	"os/exec"
+
+	session "github.com/davedotdev/go-netconf/session"
+	transport "github.com/davedotdev/go-netconf/transport"
 )
 
 // TransportJunos maintains the information necessary to communicate with Junos
 // via local shell NETCONF interface.
 type TransportJunos struct {
-	transportBasicIO
+	transport.TransportBasicIO
 	cmd *exec.Cmd
 }
 
@@ -39,17 +42,23 @@ func (t *TransportJunos) Open() error {
 		return err
 	}
 
-	t.ReadWriteCloser = NewReadWriteCloser(r, w)
+	t.ReadWriteCloser = transport.NewReadWriteCloser(r, w)
 	return t.cmd.Start()
 }
 
-// DialJunos creates a new NETCONF session via Junos local shell
+// Dial creates a new NETCONF session via Junos local shell
 // NETCONF interface (xml-mode netconf need-trailer).
-func DialJunos() (*Session, error) {
+func Dial() (*session.Session, error) {
 	var t TransportJunos
 	err := t.Open()
 	if err != nil {
 		return nil, err
 	}
-	return NewSession(&t), nil
+
+	session, err := session.NewSession(&t)
+	if err != nil {
+		return nil, err
+	}
+
+	return session, nil
 }
