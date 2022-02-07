@@ -1,4 +1,4 @@
-module github.com/ferrier1/go-netconf
+module github.com/Juniper/go-netconf
 
 go 1.12
 
