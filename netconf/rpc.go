@@ -18,9 +18,16 @@ const (
 	editConfigXml = `<edit-config>
 <target><%s/></target>
 <default-operation>merge</default-operation>
-<error-option>rollback-on-error</error-option>
+<error-option>%s</error-option>
 <config>%s</config>
 </edit-config>`
+
+	// 	`<edit-config>
+	// <target><%s/></target>
+	// <default-operation>merge</default-operation>
+	// <error-option>rollback-on-error</error-option>
+	// <config>%s</config>
+	// </edit-config>`
 )
 
 // RPCMessage represents an RPC Message to be sent.
@@ -140,8 +147,8 @@ func MethodGet(filterType string, dataXml string) RawMethod {
 }
 
 // MethodEditConfig files a NETCONF edit-config request with the remote host
-func MethodEditConfig(database string, dataXml string) RawMethod {
-	return RawMethod(fmt.Sprintf(editConfigXml, database, dataXml))
+func MethodEditConfig(database string, dataXml string, errin string) RawMethod {
+	return RawMethod(fmt.Sprintf(editConfigXml, database, errin, dataXml))
 }
 
 var msgID = uuid
