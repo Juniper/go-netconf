@@ -37,9 +37,6 @@ func (s *Session) Exec(methods ...RPCMethod) (*RPCReply, error) {
 		return nil, err
 	}
 
-	header := []byte(xml.Header)
-	request = append(header, request...)
-
 	err = s.Transport.Send(request)
 	if err != nil {
 		return nil, err
