@@ -2,8 +2,10 @@ package ssh
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
+	"net"
 
 	"github.com/nemith/go-netconf/v2/transport"
 	"golang.org/x/crypto/ssh"
@@ -20,13 +22,18 @@ type Transport struct {
 	upgraded    bool
 }
 
-func Dial(network, addr string, config *ssh.ClientConfig) (*Transport, error) {
-	c, err := ssh.Dial(network, addr, config)
+func Dial(ctx context.Context, network, addr string, config *ssh.ClientConfig) (*Transport, error) {
+	d := net.Dialer{Timeout: config.Timeout}
+	conn, err := d.DialContext(ctx, network, addr)
 	if err != nil {
 		return nil, err
 	}
-
-	return newTransport(c, true)
+	sshConn, chans, reqs, err := ssh.NewClientConn(conn, addr, config)
+	if err != nil {
+		return nil, err
+	}
+	client := ssh.NewClient(sshConn, chans, reqs)
+	return newTransport(client, true)
 }
 
 func NewTransport(client *ssh.Client) (*Transport, error) {
