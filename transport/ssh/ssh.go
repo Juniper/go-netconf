@@ -11,6 +11,7 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+// Transport implements RFC6242 for implementing NETCONF protocol over ssh.
 type Transport struct {
 	c    *ssh.Client
 	sess *ssh.Session
@@ -22,6 +23,14 @@ type Transport struct {
 	upgraded    bool
 }
 
+// Dial will connect to a ssh server and issues a transport, it's used as a
+// convience function as essnetial is the same as
+//
+// 		c, err := ssh.Dial(networkm addrm config)
+//      if err != nil { /* ... handle error ... */ }
+//      t, err := NewTransport(c)
+//
+// When the transport is closed the ssh.Client is also closed.
 func Dial(ctx context.Context, network, addr string, config *ssh.ClientConfig) (*Transport, error) {
 	d := net.Dialer{Timeout: config.Timeout}
 	conn, err := d.DialContext(ctx, network, addr)
@@ -36,6 +45,10 @@ func Dial(ctx context.Context, network, addr string, config *ssh.ClientConfig) (
 	return newTransport(client, true)
 }
 
+// NewTransport will create a new ssh transport as defined in RFC6242 for use
+// with netconf.  Unlike Dial, the underlying client will not be automatically
+// closed when the transport is closed (however any sessions and subsystems
+// are)
 func NewTransport(client *ssh.Client) (*Transport, error) {
 	return newTransport(client, false)
 }
@@ -70,6 +83,7 @@ func newTransport(client *ssh.Client, owned bool) (*Transport, error) {
 	}, nil
 }
 
+// MsgWriter allows implementation of a transport.Transport
 func (t *Transport) MsgWriter() io.WriteCloser {
 	if t.upgraded {
 		return transport.NewChunkWriter(t.w)
@@ -77,6 +91,7 @@ func (t *Transport) MsgWriter() io.WriteCloser {
 	return transport.NewFrameWriter(t.w)
 }
 
+// MsgReader allows implementation of a transport.Transport
 func (t *Transport) MsgReader() io.Reader {
 	if t.upgraded {
 		return transport.NewChunkReader(t.r)
@@ -84,6 +99,9 @@ func (t *Transport) MsgReader() io.Reader {
 	return transport.NewFrameReader(t.r)
 }
 
+// Close will close the underlying transport.  If the connection was created
+// with Dial then then underlying ssh.Client is closed as well.  If not only
+// the sessions is closed.
 func (t *Transport) Close() error {
 	if err := t.sess.Close(); err != nil {
 		return err

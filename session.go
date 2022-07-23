@@ -15,7 +15,7 @@ import (
 
 var DefaultCapabilities = []string{
 	"urn:ietf:params:netconf:base:1.0",
-	//"urn:ietf:params:netconf:base:1.1",
+	"urn:ietf:params:netconf:base:1.1",
 	// "urn:ietf:params:netconf:capability:writable-running:1.0",
 	// "urn:ietf:params:netconf:capability:candidate:1.0",
 	// "urn:ietf:params:netconf:capability:confirmed-commit:1.0",
@@ -59,7 +59,7 @@ func Open(transport transport.Transport) (*Session, error) {
 
 func (s *Session) ServerCapabilities() []string {
 	out := make([]string, 0, len(s.serverCaps))
-	for k, _ := range s.serverCaps {
+	for k := range s.serverCaps {
 		out = append(out, k)
 	}
 	sort.Strings(out)
@@ -177,7 +177,6 @@ func (s *Session) Call(ctx context.Context, op any) (*RPCReplyMsg, error) {
 	}
 
 	// cap of 1 makes sure we don't block on send
-	// XXX: Should this be in a go routine instead?
 	ch := make(chan RPCReplyMsg, 1)
 	s.mu.Lock()
 	s.reqs[rpc.MessageID] = ch

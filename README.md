@@ -1,6 +1,6 @@
 # Go `netconf` client library
 
-[![GoDoc](https://godoc.org/github.com/nemith/go-netconf/v2?status.svg)](https://godoc.org/github.com/Juniper/go-netconf/netconf)
+[![GoDoc](https://godoc.org/github.com/nemith/go-netconf/v2?status.svg)](https://godoc.org/github.com/nemith/go-netconf/v2)
 [![Report Card](https://goreportcard.com/badge/github.com/nemith/go-netconf/v2)](https://goreportcard.com/report/github.com/nemith/go-netconf/v2)
 
 This library is used to create client applications for connecting to network devices via NETCONF.
@@ -35,4 +35,3 @@ See [TODO.md](TODO.md) for a list of what is left to implement these features.
 * **Much cleaner and idomatic API**
 * **Transports are implemented in their own packages.**  This means if you are not using SSH or TLS you don't need to bring in the underlying depdendencies.
 * **Stream based transports.**  Should mean less memory usuage and less allocation bringing overall performance
-
