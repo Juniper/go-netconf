@@ -8,15 +8,37 @@ import (
 	"io"
 )
 
-var (
-	// Used to indicate the end of message in a Frame{Reader,Writer}
-	endOfMsg = []byte("]]>]]>")
+type FramedTransport struct {
+	r *bufio.Reader
+	w *bufio.Writer
 
-	// Used to indicate the end of a message for a Chuck{Reader,Writer}
-	endOfChunks = []byte("\n##\n")
-)
+	upgraded bool
+}
 
-var ErrMalformedChunk = errors.New("netconf: invalid chunk")
+func NewFramedTransport(r io.Reader, w io.WriteCloser) *FramedTransport {
+	return &FramedTransport{
+		r: bufio.NewReader(r),
+		w: bufio.NewWriter(w),
+	}
+}
+
+// MsgWriter allows implementation of a transport.Transport
+func (t *FramedTransport) MsgWriter() io.WriteCloser {
+	if t.upgraded {
+		return NewChunkWriter(t.w)
+	}
+	return NewFrameWriter(t.w)
+}
+
+// MsgReader allows implementation of a transport.Transport
+func (t *FramedTransport) MsgReader() io.Reader {
+	if t.upgraded {
+		return NewChunkReader(t.r)
+	}
+	return NewFrameReader(t.r)
+}
+
+var endOfMsg = []byte("]]>]]>")
 
 type FrameReader struct {
 	r *bufio.Reader
@@ -91,6 +113,10 @@ func (w *FrameWriter) Close() error {
 	w.w.WriteByte('\n')
 	return w.w.Flush()
 }
+
+var ErrMalformedChunk = errors.New("netconf: invalid chunk")
+
+var endOfChunks = []byte("\n##\n")
 
 type ChunkReader struct {
 	r         *bufio.Reader

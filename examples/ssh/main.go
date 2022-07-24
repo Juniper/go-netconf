@@ -16,6 +16,8 @@ import (
 )
 
 func main() {
+	ctx := context.Background()
+
 	usr, err := user.Current()
 	if err != nil {
 		log.Fatalf("failed to get current user")
@@ -39,7 +41,12 @@ func main() {
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 
-	transport, err := ncssh.Dial("tcp", "192.168.122.165:830", config)
+	// Add a connection timeout of 5 seconds.  You can also accomplish the same
+	//  behavior with Timeout field of the ssh.ClientConfig.
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	transport, err := ncssh.Dial(ctx, "tcp", "192.168.122.165:830", config)
 	if err != nil {
 		panic(err)
 	}
@@ -53,8 +60,8 @@ func main() {
 
 	fmt.Println(session.ServerCapabilities())
 
-	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	// timeout for the call itself.
+	ctx, cancel = context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	reply, err := session.Call(ctx, &netconf.GetConfigOp{Source: "running"})

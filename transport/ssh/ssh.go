@@ -1,10 +1,8 @@
 package ssh
 
 import (
-	"bufio"
 	"context"
 	"fmt"
-	"io"
 	"net"
 
 	"github.com/nemith/go-netconf/v2/transport"
@@ -15,12 +13,11 @@ import (
 type Transport struct {
 	c    *ssh.Client
 	sess *ssh.Session
-	r    *bufio.Reader
-	w    *bufio.Writer
+
+	*transport.FramedTransport
 
 	// indicate that we "own" the client
 	ownedClient bool
-	upgraded    bool
 }
 
 // Dial will connect to a ssh server and issues a transport, it's used as a
@@ -75,28 +72,11 @@ func newTransport(client *ssh.Client, owned bool) (*Transport, error) {
 	}
 
 	return &Transport{
-		c:           client,
-		ownedClient: owned,
-		sess:        sess,
-		r:           bufio.NewReader(r),
-		w:           bufio.NewWriter(w),
+		c:               client,
+		ownedClient:     owned,
+		sess:            sess,
+		FramedTransport: transport.NewFramedTransport(r, w),
 	}, nil
-}
-
-// MsgWriter allows implementation of a transport.Transport
-func (t *Transport) MsgWriter() io.WriteCloser {
-	if t.upgraded {
-		return transport.NewChunkWriter(t.w)
-	}
-	return transport.NewFrameWriter(t.w)
-}
-
-// MsgReader allows implementation of a transport.Transport
-func (t *Transport) MsgReader() io.Reader {
-	if t.upgraded {
-		return transport.NewChunkReader(t.r)
-	}
-	return transport.NewFrameReader(t.r)
 }
 
 // Close will close the underlying transport.  If the connection was created
