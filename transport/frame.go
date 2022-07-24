@@ -63,8 +63,18 @@ func (r *FrameReader) Read(p []byte) (int, error) {
 }
 
 func (r *FrameReader) ReadByte() (byte, error) {
-	if err := r.endOfMsg(); err != nil {
+	peeked, err := r.r.Peek(len(endOfMsg))
+	if err != nil && err != io.EOF {
+		// if we get an io.EOF here it means we will never read the endOfMsg
+		// terminator and will eventually get an EOF but it's better to get
+		// there naturually than to return ErrUnexpectedEOF early.
 		return 0, err
+	}
+
+	// check if we are at the end of the message
+	if bytes.Equal(peeked, endOfMsg) {
+		r.r.Discard(len(endOfMsg))
+		return 0, io.EOF
 	}
 
 	b, err := r.r.ReadByte()
@@ -73,24 +83,6 @@ func (r *FrameReader) ReadByte() (byte, error) {
 		return b, io.ErrUnexpectedEOF
 	}
 	return b, err
-}
-
-func (r *FrameReader) endOfMsg() error {
-	peeked, err := r.r.Peek(len(endOfMsg))
-	if err != nil && err != io.EOF {
-		// if we get an io.EOF here it means we will never read the endOfMsg
-		// terminator and will eventually get an EOF but it's better to get
-		// there naturually than to return ErrUnexpectedEOF early.
-		return err
-	}
-
-	// check if we are at the end of the message
-	if !bytes.Equal(peeked, endOfMsg) {
-		return nil
-	}
-
-	r.r.Discard(len(endOfMsg))
-	return io.EOF
 }
 
 type FrameWriter struct {
@@ -128,10 +120,6 @@ func NewChunkReader(r *bufio.Reader) *ChunkReader {
 }
 
 func (r *ChunkReader) readHeader() error {
-	// still reading existing chunk
-	if r.chunkLeft > 0 {
-		return nil
-	}
 
 	peeked, err := r.r.Peek(4)
 	switch err {
@@ -182,8 +170,11 @@ func (r *ChunkReader) readHeader() error {
 }
 
 func (r *ChunkReader) Read(p []byte) (int, error) {
-	if err := r.readHeader(); err != nil {
-		return 0, err
+	// still reading existing chunk
+	if r.chunkLeft <= 0 {
+		if err := r.readHeader(); err != nil {
+			return 0, err
+		}
 	}
 
 	if len(p) > r.chunkLeft {
@@ -196,9 +187,13 @@ func (r *ChunkReader) Read(p []byte) (int, error) {
 }
 
 func (r *ChunkReader) ReadByte() (byte, error) {
-	if err := r.readHeader(); err != nil {
-		return 0, err
+	// still reading existing chunk
+	if r.chunkLeft <= 0 {
+		if err := r.readHeader(); err != nil {
+			return 0, err
+		}
 	}
+
 	b, err := r.r.ReadByte()
 	if err != nil {
 		return 0, err
@@ -219,7 +214,7 @@ func NewChunkWriter(w *bufio.Writer) *ChunkWriter {
 // Write writes the given bytes to the underlying writer framing it with length as
 // defined in RFC6242
 func (w *ChunkWriter) Write(p []byte) (int, error) {
-	if _, err := fmt.Fprintf(w.w, "\n%d\n", len(p)); err != nil {
+	if _, err := fmt.Fprintf(w.w, "\n#%d\n", len(p)); err != nil {
 		return 0, err
 	}
 
