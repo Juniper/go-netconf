@@ -9,3 +9,8 @@ type Transport interface {
 	MsgWriter() io.WriteCloser
 	Close() error
 }
+
+type Upgrader interface {
+	// XXX: this should take a version
+	Upgrade()
+}

@@ -58,8 +58,6 @@ func main() {
 	}
 	defer session.Close()
 
-	fmt.Println(session.ServerCapabilities())
-
 	// timeout for the call itself.
 	ctx, cancel = context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()

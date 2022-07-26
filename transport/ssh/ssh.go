@@ -24,8 +24,8 @@ type Transport struct {
 // convience function as essnetial is the same as
 //
 // 		c, err := ssh.Dial(networkm addrm config)
-//      if err != nil { /* ... handle error ... */ }
-//      t, err := NewTransport(c)
+//  	if err != nil { /* ... handle error ... */ }
+//  	t, err := NewTransport(c)
 //
 // When the transport is closed the ssh.Client is also closed.
 func Dial(ctx context.Context, network, addr string, config *ssh.ClientConfig) (*Transport, error) {

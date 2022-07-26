@@ -6,16 +6,39 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"sort"
 	"sync"
 	"sync/atomic"
 
 	"github.com/nemith/go-netconf/v2/transport"
 )
 
+type sessionConfig struct {
+	capabilities []string
+}
+
+type SessionOption interface {
+	apply(*sessionConfig)
+}
+
+type capabilityOpt []string
+
+func (o capabilityOpt) apply(cfg *sessionConfig) {
+	for _, cap := range o {
+		cfg.capabilities = append(cfg.capabilities, cap)
+	}
+}
+
+func WithCapability(capabilities ...string) SessionOption {
+	return capabilityOpt(capabilities)
+}
+
 var DefaultCapabilities = []string{
 	"urn:ietf:params:netconf:base:1.0",
 	"urn:ietf:params:netconf:base:1.1",
+
+	// XXX: these seems like server capabilities and i don't see why
+	// a client would need to send them
+
 	// "urn:ietf:params:netconf:capability:writable-running:1.0",
 	// "urn:ietf:params:netconf:capability:candidate:1.0",
 	// "urn:ietf:params:netconf:capability:confirmed-commit:1.0",
@@ -34,36 +57,34 @@ type Session struct {
 	msgID     uint64
 	sessionID uint64
 
-	clientCaps map[string]struct{}
-	serverCaps map[string]struct{}
+	clientCaps CapabilitySet
+	serverCaps CapabilitySet
 
 	mu   sync.Mutex
 	reqs map[uint64]chan RPCReplyMsg
 }
 
-func Open(transport transport.Transport) (*Session, error) {
-	sess := &Session{
-		reqs:       make(map[uint64]chan RPCReplyMsg),
-		serverCaps: make(map[string]struct{}),
-		tr:         transport,
+func Open(transport transport.Transport, opts ...SessionOption) (*Session, error) {
+	cfg := sessionConfig{
+		capabilities: DefaultCapabilities,
+	}
+	for _, opt := range opts {
+		opt.apply(&cfg)
 	}
 
-	if err := sess.hello(); err != nil {
+	s := &Session{
+		tr: transport,
+		// XXX: fix me.  We doing sets or slices.  Figure it out man
+		clientCaps: NewCapabilitySet(cfg.capabilities...),
+		reqs:       make(map[uint64]chan RPCReplyMsg),
+	}
+
+	if err := s.hello(); err != nil {
 		return nil, err
 	}
 
-	go sess.recv()
-
-	return sess, nil
-}
-
-func (s *Session) ServerCapabilities() []string {
-	out := make([]string, 0, len(s.serverCaps))
-	for k := range s.serverCaps {
-		out = append(out, k)
-	}
-	sort.Strings(out)
-	return out
+	go s.recv()
+	return s, nil
 }
 
 func (s *Session) writeMsg(v any) error {
@@ -77,8 +98,7 @@ func (s *Session) writeMsg(v any) error {
 
 func (s *Session) hello() error {
 	clientMsg := HelloMsg{
-		// TODO: allow for custom client capability lists
-		Capabilities: DefaultCapabilities,
+		Capabilities: s.clientCaps.All(),
 	}
 	if err := s.writeMsg(&clientMsg); err != nil {
 		return fmt.Errorf("failed to write hello message: %w", err)
@@ -88,11 +108,27 @@ func (s *Session) hello() error {
 	if err := xml.NewDecoder(s.tr.MsgReader()).Decode(&serverMsg); err != nil {
 		return fmt.Errorf("failed to read server hello message: %w", err)
 	}
-	for _, cap := range serverMsg.Capabilities {
-		s.serverCaps[cap] = struct{}{}
+
+	if serverMsg.SessionID == 0 {
+		return fmt.Errorf("server did not return a session-id")
+		// XXX: close session
 	}
 
-	// FIXME: check base capabilities and versions here
+	if len(serverMsg.Capabilities) == 0 {
+		return fmt.Errorf("server did not return any capabilities")
+	}
+	s.serverCaps = NewCapabilitySet(serverMsg.Capabilities...)
+
+	// upgrade the transport if we are on a larger version and the transport
+	// supports it.
+	const baseCap11 = baseCap + ":1.1"
+	if s.serverCaps.Has(baseCap11) && s.clientCaps.Has(baseCap11) {
+		log.Println("upgrading")
+		if upgrader, ok := s.tr.(transport.Upgrader); ok {
+			upgrader.Upgrade()
+		}
+	}
+
 	return nil
 }
 
@@ -194,4 +230,14 @@ func (s *Session) Call(ctx context.Context, op any) (*RPCReplyMsg, error) {
 func (s *Session) Close() error {
 	// do the things
 	return nil
+}
+
+func (s *Session) ClientCapabilities() CapabilitySet {
+	// XXX: should we clone this? Do we care of someone is careless with the values
+	return s.clientCaps
+}
+
+func (s *Session) ServerCapabilities() CapabilitySet {
+	// XXX: should we clone this? Do we care of someone is careless with the values
+	return s.serverCaps
 }

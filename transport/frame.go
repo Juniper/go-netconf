@@ -38,6 +38,10 @@ func (t *FramedTransport) MsgReader() io.Reader {
 	return NewFrameReader(t.r)
 }
 
+func (t *FramedTransport) Upgrade() {
+	t.upgraded = true
+}
+
 var endOfMsg = []byte("]]>]]>")
 
 type FrameReader struct {
@@ -120,7 +124,6 @@ func NewChunkReader(r *bufio.Reader) *ChunkReader {
 }
 
 func (r *ChunkReader) readHeader() error {
-
 	peeked, err := r.r.Peek(4)
 	switch err {
 	case nil:
