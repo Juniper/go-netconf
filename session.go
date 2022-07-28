@@ -203,19 +203,17 @@ func (s *Session) nextMsgID() uint64 {
 	return uint64(atomic.AddUint64(&s.msgID, 1))
 }
 
-func (s *Session) Call(ctx context.Context, op any) (*RPCReplyMsg, error) {
-	rpc := RPCMsg{
-		MessageID: s.nextMsgID(),
-		Operation: op,
-	}
-	if err := s.writeMsg(&rpc); err != nil {
+func (s *Session) Do(ctx context.Context, msg *RPCMsg) (*RPCReplyMsg, error) {
+	msg.MessageID = s.nextMsgID()
+
+	if err := s.writeMsg(msg); err != nil {
 		return nil, err
 	}
 
 	// cap of 1 makes sure we don't block on send
 	ch := make(chan RPCReplyMsg, 1)
 	s.mu.Lock()
-	s.reqs[rpc.MessageID] = ch
+	s.reqs[msg.MessageID] = ch
 	s.mu.Unlock()
 
 	select {
@@ -225,6 +223,22 @@ func (s *Session) Call(ctx context.Context, op any) (*RPCReplyMsg, error) {
 		// FIXME: need to poision/purge the reply from the map
 		return nil, ctx.Err()
 	}
+}
+
+func (s *Session) Call(ctx context.Context, op any, resp any) error {
+	msg := &RPCMsg{
+		Operation: op,
+	}
+
+	reply, err := s.Do(ctx, msg)
+	if err != nil {
+		return err
+	}
+
+	if err := xml.Unmarshal(reply.Data, reply); err != nil {
+		return fmt.Errorf("failed to decode response: %w", err)
+	}
+	return nil
 }
 
 func (s *Session) Close() error {
