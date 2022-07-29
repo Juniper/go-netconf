@@ -2,8 +2,8 @@
 
 ### Before v2.0.0-beta:
 
-- [ ] Upgrade transport based on versions (1.0->1.1 upgrade to chunked) 
-- [ ] Cleanup request/response API (Session.Do, session.Call?)
+- [~] Upgrade transport based on versions (1.0->1.1 upgrade to chunked) 
+- [~] Cleanup request/response API (Session.Do, session.Call?)
 - [ ] Convert rpc errors to go errors
 - [ ] logger?
 - [ ] shutdown / close
@@ -15,7 +15,7 @@
 
 - [ ] benchmark against v0.2.0
 - [ ] filter support
-- [ ] TLS support
+- [~] TLS support
 - [ ] Notification handler support
 - [ ] Capability creation/query API
 - [ ] github actions (CI)

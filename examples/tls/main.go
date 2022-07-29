@@ -2,17 +2,26 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
+	_ "embed"
 	"fmt"
-	"log"
-	"net"
 	"os"
-	"os/user"
 	"time"
 
 	netconf "github.com/nemith/go-netconf/v2"
-	ncssh "github.com/nemith/go-netconf/v2/transport/ssh"
-	"golang.org/x/crypto/ssh"
-	"golang.org/x/crypto/ssh/agent"
+	nctls "github.com/nemith/go-netconf/v2/transport/tls"
+)
+
+var (
+	//go:embed certs/ca.crt
+	caCert []byte
+
+	//go:embed certs/client.crt
+	clientCert []byte
+
+	//go:embed certs/client.key
+	clientKey []byte
 )
 
 func main() {
@@ -24,27 +33,12 @@ func main() {
 
 	ctx := context.Background()
 
-	usr, err := user.Current()
-	if err != nil {
-		log.Fatalf("failed to get current user")
-	}
+	caCertPool := x509.NewCertPool()
+	caCertPool.AppendCertsFromPEM(caCert)
 
-	// ssh-agent(1) provides a UNIX socket at $SSH_AUTH_SOCK.
-	socket := os.Getenv("SSH_AUTH_SOCK")
-	conn, err := net.Dial("unix", socket)
+	cert, err := tls.X509KeyPair(clientCert, clientKey)
 	if err != nil {
-		log.Fatalf("Failed to open SSH_AUTH_SOCK: %v", err)
-	}
-
-	agentClient := agent.NewClient(conn)
-	config := &ssh.ClientConfig{
-		User: usr.Username,
-		Auth: []ssh.AuthMethod{
-			// Use a callback rather than PublicKeys so we only consult the
-			// agent once the remote server wants it.
-			ssh.PublicKeysCallback(agentClient.Signers),
-		},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		panic(err)
 	}
 
 	// Add a connection timeout of 5 seconds.  You can also accomplish the same
@@ -52,7 +46,13 @@ func main() {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	transport, err := ncssh.Dial(ctx, "tcp", addr, config)
+	config := tls.Config{
+		InsecureSkipVerify: true,
+		RootCAs:            caCertPool,
+		Certificates:       []tls.Certificate{cert},
+	}
+
+	transport, err := nctls.Dial(ctx, "tcp", addr, &config)
 	if err != nil {
 		panic(err)
 	}
@@ -69,7 +69,7 @@ func main() {
 	defer cancel()
 
 	reply, err := session.Do(ctx, &netconf.RPCMsg{Operation: &netconf.GetConfigOp{Source: "running"}})
-	/* reply, err := session.Call(ctx, "<get-config><source><running><running/></source></get-config>") */
+	/* reply, err := session.Do(ctx, "<get-config><source><running><running/></source></get-config>") */
 	if err != nil {
 		panic(err)
 	}

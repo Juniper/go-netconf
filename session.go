@@ -89,7 +89,6 @@ func Open(transport transport.Transport, opts ...SessionOption) (*Session, error
 
 func (s *Session) writeMsg(v any) error {
 	w := s.tr.MsgWriter()
-	io.WriteString(w, xml.Header)
 	if err := xml.NewEncoder(w).Encode(v); err != nil {
 		return err
 	}

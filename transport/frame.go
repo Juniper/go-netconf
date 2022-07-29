@@ -15,7 +15,11 @@ type FramedTransport struct {
 	upgraded bool
 }
 
-func NewFramedTransport(r io.Reader, w io.WriteCloser) *FramedTransport {
+func NewFramedTransport(r io.Reader, w io.Writer) *FramedTransport {
+	/*
+		w = io.MultiWriter(w, os.Stdout)
+		r = io.TeeReader(r, os.Stdout)
+	*/
 	return &FramedTransport{
 		r: bufio.NewReader(r),
 		w: bufio.NewWriter(w),
@@ -98,6 +102,7 @@ func NewFrameWriter(w *bufio.Writer) *FrameWriter {
 }
 
 func (w *FrameWriter) Write(p []byte) (int, error) {
+	fmt.Printf("%s\n", p)
 	return w.w.Write(p)
 }
 
