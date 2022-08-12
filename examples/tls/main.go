@@ -62,13 +62,13 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer session.Close()
+	defer session.Close(context.Background())
 
 	// timeout for the call itself.
 	ctx, cancel = context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	reply, err := session.Do(ctx, &netconf.RPCMsg{Operation: &netconf.GetConfigOp{Source: "running"}})
+	reply, err := session.Do(ctx, &netconf.RPCMsg{Operation: &netconf.GetConfig{Source: "running"}})
 	/* reply, err := session.Do(ctx, "<get-config><source><running><running/></source></get-config>") */
 	if err != nil {
 		panic(err)

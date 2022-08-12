@@ -3,14 +3,15 @@ package tls
 import (
 	"context"
 	"crypto/tls"
+	"io"
 	"net"
 
 	"github.com/nemith/go-netconf/v2/transport"
 )
 
 type Transport struct {
-	conn *tls.Conn
-	*transport.FramedTransport
+	conn   *tls.Conn
+	framer transport.Transport
 }
 
 func Dial(ctx context.Context, network, addr string, config *tls.Config) (*Transport, error) {
@@ -27,11 +28,15 @@ func Dial(ctx context.Context, network, addr string, config *tls.Config) (*Trans
 
 func NewTransport(conn *tls.Conn) *Transport {
 	return &Transport{
-		conn:            conn,
-		FramedTransport: transport.NewFramedTransport(conn, conn),
+		conn:   conn,
+		framer: transport.NewFrameTransport(conn, conn),
 	}
 }
 
-func (c *Transport) Close() error {
-	return c.conn.Close()
+func (t *Transport) MsgReader() (io.Reader, error)      { return t.framer.MsgReader() }
+func (t *Transport) MsgWriter() (io.WriteCloser, error) { return t.framer.MsgWriter() }
+
+func (t *Transport) Close() error {
+	t.framer.Close()
+	return t.conn.Close()
 }

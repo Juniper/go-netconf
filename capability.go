@@ -1,7 +1,5 @@
 package netconf
 
-import "fmt"
-
 const (
 	baseCap      = "urn:ietf:params:netconf:base"
 	stdCapPrefix = "urn:ietf:params:netconf:capability"
@@ -42,7 +40,6 @@ func (cs CapabilitySet) Has(s string) bool {
 	// XXX: need to figure out how to handle versions (i.e always map to 1.0 or
 	// map to latest/any?)
 	s = ExpandCapability(s)
-	fmt.Println(s)
 	_, ok := cs.caps[s]
 	return ok
 }

@@ -1,9 +1,8 @@
 package netconf
 
 import (
+	"context"
 	"encoding/xml"
-	"fmt"
-	"strings"
 	"time"
 )
 
@@ -23,11 +22,15 @@ type RPCMsg struct {
 
 // rpcReplyMsg maps the xml value of <rpc-reply> in RFC6241
 type RPCReplyMsg struct {
-	XMLName   xml.Name   `xml:"urn:ietf:params:xml:ns:netconf:base:1.0 rpc-reply"`
-	MessageID uint64     `xml:"message-id,attr"`
-	Ok        bool       `xml:"ok"`
-	Errors    []RPCError `xml:"rpc-error,omitempty"`
-	Data      []byte     `xml:",innerxml"`
+	XMLName   xml.Name `xml:"urn:ietf:params:xml:ns:netconf:base:1.0 rpc-reply"`
+	MessageID uint64   `xml:"message-id,attr"`
+
+	// Ok is part of RFC6241 and is present if no data is returned from an
+	// RPC call and there were no errors.  This IS NOT set to true if data is
+	// also returned.  To check if a call is ok then look ath the RPCErrors
+
+	Errors []RPCError `xml:"rpc-error,omitempty"`
+	Data   []byte     `xml:",innerxml"`
 }
 
 type NotificationMsg struct {
@@ -70,59 +73,50 @@ func (e RPCError) Error() string {
 	return e.Message
 }
 
-type Filter struct {
-	XMLName xml.Name `xml:"filter"`
-	Type    xml.Attr `xml:"type"`
+// XXX: RPC calls these either Methods or Operations depending on what you look at.
+type GetConfigRPC struct {
+	Source StringElem
+	Filter Filter
 }
 
-type GetConfigOp struct {
-	XMLName xml.Name   `xml:"get-config"`
-	Source  StringElem `xml:"source"`
-	Filter  *Filter    `xml:"filter,omitempty"`
+type GetConfigResp struct {
 }
 
-type StringElem string
+func (s *Session) GetConfig(ctx context.Context, source string) ([]byte, error) {
+	method := struct {
+		// XXX do these need namespaced as well?
+		XMLName xml.Name   `xml:"get-config"`
+		Source  StringElem `xml:"source"`
+		// Filter
+	}{Source: StringElem(source)}
 
-func (s StringElem) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-	if s == "" {
-		return fmt.Errorf("string elements cannot be empty")
+	resp := struct {
+		// XXX do these need namespaced as well?
+		XMLName xml.Name `xml:"data"`
+		Config  []byte   `xml:",innerxml"`
+	}{}
+
+	if err := s.Call(ctx, &method, &resp); err != nil {
+		return nil, err
 	}
 
-	escaped, err := escapeXML(string(s))
-	if err != nil {
-		return fmt.Errorf("invalid string element: %w", err)
-	}
-
-	v := struct {
-		Elem string `xml:",innerxml"`
-	}{Elem: "<" + escaped + "/>"}
-	return e.EncodeElement(&v, start)
+	return resp.Config, nil
 }
 
-type SentinalBool bool
-
-func (b SentinalBool) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-	if !b {
-		return nil
-	}
-	fmt.Println(b)
-
-	return e.EncodeElement(b, start)
+type OKResponse struct {
+	Ok SentinalBool `xml:"ok"`
 }
 
-func (b *SentinalBool) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
-	v := &struct{}{}
-	if err := d.DecodeElement(v, &start); err != nil {
-		return err
-	}
-	*b = v != nil
-	return nil
-}
+// <get-config>
+//    source, filter
+//
+// <edit-config>
+//    operation,
 
-func escapeXML(input string) (string, error) {
-	buf := &strings.Builder{}
-	if err := xml.EscapeText(buf, []byte(input)); err != nil {
-		return "", err
-	}
-	return buf.String(), nil
-}
+// <copy-config>
+// <delete-config>
+// <lock>
+// <unlock>
+// <get>
+// <close>  // already implemented and hidden...
+// <kill-session>

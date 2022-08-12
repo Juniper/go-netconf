@@ -3,6 +3,7 @@ package ssh
 import (
 	"context"
 	"fmt"
+	"io"
 	"net"
 
 	"github.com/nemith/go-netconf/v2/transport"
@@ -13,11 +14,10 @@ import (
 type Transport struct {
 	c    *ssh.Client
 	sess *ssh.Session
-
-	*transport.FramedTransport
-
-	// indicate that we "own" the client
+	// indicate that we "own" the client and should close it and the session.
 	ownedClient bool
+
+	framer transport.Transport
 }
 
 // Dial will connect to a ssh server and issues a transport, it's used as a
@@ -72,17 +72,23 @@ func newTransport(client *ssh.Client, owned bool) (*Transport, error) {
 	}
 
 	return &Transport{
-		c:               client,
-		ownedClient:     owned,
-		sess:            sess,
-		FramedTransport: transport.NewFramedTransport(r, w),
+		c:           client,
+		ownedClient: owned,
+		sess:        sess,
+
+		framer: transport.NewFrameTransport(r, w),
 	}, nil
 }
+
+func (t *Transport) MsgReader() (io.Reader, error)      { return t.framer.MsgReader() }
+func (t *Transport) MsgWriter() (io.WriteCloser, error) { return t.framer.MsgWriter() }
 
 // Close will close the underlying transport.  If the connection was created
 // with Dial then then underlying ssh.Client is closed as well.  If not only
 // the sessions is closed.
 func (t *Transport) Close() error {
+	t.framer.Close()
+
 	if err := t.sess.Close(); err != nil {
 		return err
 	}
@@ -90,5 +96,6 @@ func (t *Transport) Close() error {
 	if t.ownedClient {
 		return t.c.Close()
 	}
+
 	return nil
 }

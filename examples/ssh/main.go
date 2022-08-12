@@ -11,6 +11,7 @@ import (
 
 	netconf "github.com/nemith/go-netconf/v2"
 	ncssh "github.com/nemith/go-netconf/v2/transport/ssh"
+	"go.uber.org/goleak"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 )
@@ -56,22 +57,37 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer transport.Close()
+	//defer transport.Close()
 
 	session, err := netconf.Open(transport)
 	if err != nil {
 		panic(err)
 	}
-	defer session.Close()
+	//defer session.Close(context.Background())
 
 	// timeout for the call itself.
 	ctx, cancel = context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	reply, err := session.Do(ctx, &netconf.RPCMsg{Operation: &netconf.GetConfigOp{Source: "running"}})
-	/* reply, err := session.Call(ctx, "<get-config><source><running><running/></source></get-config>") */
+	reply, err := session.Do(ctx, &netconf.RPCMsg{Operation: `<get-configuration format="text"/>`})
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println(reply.Data)
+
+	deviceConfig, err := session.GetConfig(ctx, "running")
+	if err != nil {
+		log.Fatalf("failed to get config: %v", err)
+	}
+
+	log.Printf("Config:\n%s\n", deviceConfig)
+
+	if err := session.Close(context.Background()); err != nil {
+		log.Print(err)
+	}
+
+	if err := goleak.Find(); err != nil {
+		fmt.Println(err)
+	}
+
 }
