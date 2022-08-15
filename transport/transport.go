@@ -6,6 +6,7 @@ import (
 )
 
 var ErrExistingWriter = errors.New("netconf: existing message writer still open")
+var ErrReaderExpired = errors.New("netconf: reader has exipred")
 
 type Transport interface {
 	// MsgReader returns a new io.Reader to read a single netconf message.

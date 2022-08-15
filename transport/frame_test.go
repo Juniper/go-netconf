@@ -133,9 +133,9 @@ func TestFrameWriter(t *testing.T) {
 		t.Fatalf("failed to close writer: %v", err)
 	}
 
-	want := []byte("foo]]>]]>\n")
+	want := []byte("foo\n]]>]]>\n")
 	if !bytes.Equal(buf.Bytes(), want) {
-		t.Errorf("unexpected data written (want %q, got %q", want, buf.Bytes())
+		t.Errorf("unexpected data written (want %q, got %q)", want, buf.Bytes())
 	}
 }
 
