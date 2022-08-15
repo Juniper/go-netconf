@@ -3,7 +3,6 @@ package ssh
 import (
 	"context"
 	"fmt"
-	"io"
 	"net"
 
 	"github.com/nemith/go-netconf/v2/transport"
@@ -83,9 +82,6 @@ func newTransport(client *ssh.Client, owned bool) (*Transport, error) {
 		framer: transport.NewFramer(r, w),
 	}, nil
 }
-
-func (t *Transport) MsgReader() (io.Reader, error)      { return t.framer.MsgReader() }
-func (t *Transport) MsgWriter() (io.WriteCloser, error) { return t.framer.MsgWriter() }
 
 // Close will close the underlying transport.  If the connection was created
 // with Dial then then underlying ssh.Client is closed as well.  If not only
