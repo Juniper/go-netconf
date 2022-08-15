@@ -10,22 +10,26 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+type framer = transport.Framer
+
 // Transport implements RFC6242 for implementing NETCONF protocol over ssh.
 type Transport struct {
 	c    *ssh.Client
 	sess *ssh.Session
-	// indicate that we "own" the client and should close it and the session.
+
+	// indicate that we "own" the client and should close it with the session
+	// when the transport is closed.
 	ownedClient bool
 
-	framer transport.Transport
+	*framer
 }
 
 // Dial will connect to a ssh server and issues a transport, it's used as a
 // convience function as essnetial is the same as
 //
-// 		c, err := ssh.Dial(networkm addrm config)
-//  	if err != nil { /* ... handle error ... */ }
-//  	t, err := NewTransport(c)
+//			c, err := ssh.Dial(networkm addrm config)
+//	 	if err != nil { /* ... handle error ... */ }
+//	 	t, err := NewTransport(c)
 //
 // When the transport is closed the ssh.Client is also closed.
 func Dial(ctx context.Context, network, addr string, config *ssh.ClientConfig) (*Transport, error) {
@@ -76,7 +80,7 @@ func newTransport(client *ssh.Client, owned bool) (*Transport, error) {
 		ownedClient: owned,
 		sess:        sess,
 
-		framer: transport.NewFrameTransport(r, w),
+		framer: transport.NewFramer(r, w),
 	}, nil
 }
 
@@ -87,8 +91,6 @@ func (t *Transport) MsgWriter() (io.WriteCloser, error) { return t.framer.MsgWri
 // with Dial then then underlying ssh.Client is closed as well.  If not only
 // the sessions is closed.
 func (t *Transport) Close() error {
-	t.framer.Close()
-
 	if err := t.sess.Close(); err != nil {
 		return err
 	}

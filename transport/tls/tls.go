@@ -9,9 +9,11 @@ import (
 	"github.com/nemith/go-netconf/v2/transport"
 )
 
+type framer = transport.Framer
+
 type Transport struct {
-	conn   *tls.Conn
-	framer transport.Transport
+	conn *tls.Conn
+	*framer
 }
 
 func Dial(ctx context.Context, network, addr string, config *tls.Config) (*Transport, error) {
@@ -29,7 +31,7 @@ func Dial(ctx context.Context, network, addr string, config *tls.Config) (*Trans
 func NewTransport(conn *tls.Conn) *Transport {
 	return &Transport{
 		conn:   conn,
-		framer: transport.NewFrameTransport(conn, conn),
+		framer: transport.NewFramer(conn, conn),
 	}
 }
 
@@ -37,6 +39,5 @@ func (t *Transport) MsgReader() (io.Reader, error)      { return t.framer.MsgRea
 func (t *Transport) MsgWriter() (io.WriteCloser, error) { return t.framer.MsgWriter() }
 
 func (t *Transport) Close() error {
-	t.framer.Close()
 	return t.conn.Close()
 }
