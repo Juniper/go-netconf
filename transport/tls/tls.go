@@ -3,7 +3,6 @@ package tls
 import (
 	"context"
 	"crypto/tls"
-	"io"
 	"net"
 
 	"github.com/nemith/go-netconf/v2/transport"
@@ -11,11 +10,13 @@ import (
 
 type framer = transport.Framer
 
+// Transport implements RFC7589 for implementing NETCONF over TLS.
 type Transport struct {
 	conn *tls.Conn
 	*framer
 }
 
+// Dial will connect to a server via TLS and retuns a Transport.
 func Dial(ctx context.Context, network, addr string, config *tls.Config) (*Transport, error) {
 	var d net.Dialer
 	conn, err := d.DialContext(ctx, network, addr)
@@ -28,6 +29,8 @@ func Dial(ctx context.Context, network, addr string, config *tls.Config) (*Trans
 
 }
 
+// NewTransport takes an already connected tls transport and returns a new
+// Transport.
 func NewTransport(conn *tls.Conn) *Transport {
 	return &Transport{
 		conn:   conn,
@@ -35,9 +38,7 @@ func NewTransport(conn *tls.Conn) *Transport {
 	}
 }
 
-func (t *Transport) MsgReader() (io.Reader, error)      { return t.framer.MsgReader() }
-func (t *Transport) MsgWriter() (io.WriteCloser, error) { return t.framer.MsgWriter() }
-
+// Close will close the transport and the underlying TLS connection.
 func (t *Transport) Close() error {
 	return t.conn.Close()
 }

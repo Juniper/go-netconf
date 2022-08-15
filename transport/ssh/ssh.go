@@ -11,7 +11,7 @@ import (
 
 type framer = transport.Framer
 
-// Transport implements RFC6242 for implementing NETCONF protocol over ssh.
+// Transport implements RFC6242 for implementing NETCONF protocol over SSH.
 type Transport struct {
 	c    *ssh.Client
 	sess *ssh.Session
@@ -30,7 +30,7 @@ type Transport struct {
 //	 	if err != nil { /* ... handle error ... */ }
 //	 	t, err := NewTransport(c)
 //
-// When the transport is closed the ssh.Client is also closed.
+// When the transport is closed the underlying connection is also closed.
 func Dial(ctx context.Context, network, addr string, config *ssh.ClientConfig) (*Transport, error) {
 	d := net.Dialer{Timeout: config.Timeout}
 	conn, err := d.DialContext(ctx, network, addr)
@@ -48,7 +48,7 @@ func Dial(ctx context.Context, network, addr string, config *ssh.ClientConfig) (
 // NewTransport will create a new ssh transport as defined in RFC6242 for use
 // with netconf.  Unlike Dial, the underlying client will not be automatically
 // closed when the transport is closed (however any sessions and subsystems
-// are)
+// are still closed).
 func NewTransport(client *ssh.Client) (*Transport, error) {
 	return newTransport(client, false)
 }
