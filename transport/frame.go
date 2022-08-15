@@ -71,7 +71,6 @@ func (t *Framer) MsgReader() (io.Reader, error) {
 		if err := t.curReader.advance(); err != nil {
 			return nil, err
 		}
-		t.curReader = nil
 	}
 
 	if t.upgraded {
