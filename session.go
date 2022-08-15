@@ -117,6 +117,8 @@ func (s *Session) hello() error {
 	}
 	s.serverCaps = NewCapabilitySet(serverMsg.Capabilities...)
 
+	s.sessionID = serverMsg.SessionID
+
 	// upgrade the transport if we are on a larger version and the transport
 	// supports it.
 	const baseCap11 = baseCap + ":1.1"

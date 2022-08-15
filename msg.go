@@ -9,7 +9,7 @@ import (
 // helloMsg maps the xml value of the <hello> message in RFC6241
 type HelloMsg struct {
 	XMLName      xml.Name `xml:"urn:ietf:params:xml:ns:netconf:base:1.0 hello"`
-	SessionID    int      `xml:"session-id,omitempty"`
+	SessionID    uint64   `xml:"session-id,omitempty"`
 	Capabilities []string `xml:"capabilities>capability"`
 }
 
