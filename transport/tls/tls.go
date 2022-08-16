@@ -8,6 +8,7 @@ import (
 	"github.com/nemith/go-netconf/v2/transport"
 )
 
+// alias it to a private type so we can make it private when embedding
 type framer = transport.Framer
 
 // Transport implements RFC7589 for implementing NETCONF over TLS.

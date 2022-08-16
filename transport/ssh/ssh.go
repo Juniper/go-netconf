@@ -9,6 +9,7 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+// alias it to a private type so we can make it private when embedding
 type framer = transport.Framer
 
 // Transport implements RFC6242 for implementing NETCONF protocol over SSH.
@@ -26,7 +27,7 @@ type Transport struct {
 // Dial will connect to a ssh server and issues a transport, it's used as a
 // convience function as essnetial is the same as
 //
-//			c, err := ssh.Dial(networkm addrm config)
+//		c, err := ssh.Dial(network, addr, config)
 //	 	if err != nil { /* ... handle error ... */ }
 //	 	t, err := NewTransport(c)
 //
