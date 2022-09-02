@@ -173,10 +173,11 @@ func NewReadWriteCloser(r io.Reader, w io.WriteCloser) *ReadWriteCloser {
 }
 
 func (t *transportBasicIO) ReceiveEvent() ([]byte, error) {
-	out, err := t.WaitForBytes([]byte("<output>"))
-	if err != nil {
-		return nil, err
-	}
+	//out, err := t.WaitForBytes([]byte("<output>"))
+	//if err != nil {
+	//	return nil, err
+	//}
+	//fmt.Printf("%v\n", string(out))
 	event, err := t.WaitForBytes([]byte("</output>"))
 	if event != nil {
 		return event, err

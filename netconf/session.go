@@ -11,8 +11,13 @@ Package netconf provides support for a a simple NETCONF client based on RFC6241 
 package netconf
 
 import (
+	"bytes"
 	"encoding/xml"
 )
+
+type EventStreaming interface {
+	SendEvent(s string)
+}
 
 // Session defines the necessary components for a NETCONF session
 type Session struct {
@@ -27,7 +32,7 @@ func (s *Session) Close() error {
 	return s.Transport.Close()
 }
 
-func (s *Session) Streaming(ch chan<- string, methods ...RPCMethod) (*RPCReply, error) {
+func (s *Session) Streaming(eventStreaming EventStreaming, methods ...RPCMethod) (*RPCReply, error) {
 	rpc := NewRPCMessage(methods)
 
 	request, err := xml.Marshal(rpc)
@@ -47,8 +52,9 @@ func (s *Session) Streaming(ch chan<- string, methods ...RPCMethod) (*RPCReply, 
 		if err != nil {
 			return nil, err
 		}
-
-		ch <- string(event)
+		begin_event := bytes.Index(event, []byte("<output>"))
+		content_event := event[begin_event+8:]
+		eventStreaming.SendEvent(string(content_event))
 	}
 }
 
