@@ -36,6 +36,7 @@ type HelloMessage struct {
 type Transport interface {
 	Send([]byte) error
 	Receive() ([]byte, error)
+	ReceiveEvent() ([]byte, error)
 	Close() error
 	ReceiveHello() (*HelloMessage, error)
 	SendHello(*HelloMessage) error
@@ -169,4 +170,16 @@ type ReadWriteCloser struct {
 // provided objects
 func NewReadWriteCloser(r io.Reader, w io.WriteCloser) *ReadWriteCloser {
 	return &ReadWriteCloser{r, w}
+}
+
+func (t *transportBasicIO) ReceiveEvent() ([]byte, error) {
+	out, err := t.WaitForBytes([]byte("<output>"))
+	if err != nil {
+		return nil, err
+	}
+	event, err := t.WaitForBytes([]byte("</output>"))
+	if event != nil {
+		return event, err
+	}
+	return nil, err
 }

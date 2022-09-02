@@ -27,6 +27,31 @@ func (s *Session) Close() error {
 	return s.Transport.Close()
 }
 
+func (s *Session) Streaming(ch chan<- string, methods ...RPCMethod) (*RPCReply, error) {
+	rpc := NewRPCMessage(methods)
+
+	request, err := xml.Marshal(rpc)
+	if err != nil {
+		return nil, err
+	}
+
+	header := []byte(xml.Header)
+	request = append(header, request...)
+
+	err = s.Transport.Send(request)
+	if err != nil {
+		return nil, err
+	}
+	for {
+		event, err := s.Transport.ReceiveEvent()
+		if err != nil {
+			return nil, err
+		}
+
+		ch <- string(event)
+	}
+}
+
 // Exec is used to execute an RPC method or methods
 func (s *Session) Exec(methods ...RPCMethod) (*RPCReply, error) {
 	rpc := NewRPCMessage(methods)
