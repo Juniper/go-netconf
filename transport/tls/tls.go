@@ -5,7 +5,7 @@ import (
 	"crypto/tls"
 	"net"
 
-	"github.com/nemith/go-netconf/v2/transport"
+	"github.com/nemith/netconf/transport"
 )
 
 // alias it to a private type so we can make it private when embedding

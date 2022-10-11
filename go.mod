@@ -1,4 +1,4 @@
-module github.com/nemith/go-netconf/v2
+module github.com/nemith/netconf
 
 go 1.17
 

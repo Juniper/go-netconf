@@ -8,7 +8,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/nemith/go-netconf/v2/transport"
+	"github.com/nemith/netconf/transport"
 )
 
 type sessionConfig struct {

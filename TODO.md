@@ -2,7 +2,7 @@
 
 ### Before v2.0.0-beta:
 
-- [ ] Upgrade transport based on versions (1.0->1.1 upgrade to chunked) 
+- [X] Upgrade transport based on versions (1.0->1.1 upgrade to chunked) 
 - [~] Cleanup request/response API (Session.Do, session.Call?)
 - [ ] Convert rpc errors to go errors
 - [ ] logger?

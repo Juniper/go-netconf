@@ -9,8 +9,8 @@ import (
 	"os/user"
 	"time"
 
-	netconf "github.com/nemith/go-netconf/v2"
-	ncssh "github.com/nemith/go-netconf/v2/transport/ssh"
+	netconf "github.com/nemith/netconf"
+	ncssh "github.com/nemith/netconf/transport/ssh"
 	"go.uber.org/goleak"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"

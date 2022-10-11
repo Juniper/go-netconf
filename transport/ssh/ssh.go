@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/nemith/go-netconf/v2/transport"
+	"github.com/nemith/netconf/transport"
 	"golang.org/x/crypto/ssh"
 )
 

@@ -9,8 +9,8 @@ import (
 	"os"
 	"time"
 
-	netconf "github.com/nemith/go-netconf/v2"
-	nctls "github.com/nemith/go-netconf/v2/transport/tls"
+	netconf "github.com/nemith/netconf"
+	nctls "github.com/nemith/netconf/transport/tls"
 )
 
 var (
