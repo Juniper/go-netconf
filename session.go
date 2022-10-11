@@ -123,7 +123,7 @@ func (s *Session) hello() error {
 	// supports it.
 	const baseCap11 = baseCap + ":1.1"
 	if s.serverCaps.Has(baseCap11) && s.clientCaps.Has(baseCap11) {
-		if upgrader, ok := s.tr.(transport.Upgrader); ok {
+		if upgrader, ok := s.tr.(interface{ Upgrade() }); ok {
 			upgrader.Upgrade()
 		}
 	}

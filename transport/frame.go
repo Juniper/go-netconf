@@ -56,7 +56,6 @@ func NewFramer(r io.Reader, w io.Writer) *Framer {
 // Chunked framing.  This is usually called after netconf exchanged the hello
 // messages.
 func (t *Framer) Upgrade() {
-	// XXX: do we need to protect against race conditions (atomic/mutux?)
 	t.upgraded = true
 }
 

@@ -34,11 +34,3 @@ type Transport interface {
 	// Close will close the underlying transport.
 	Close() error
 }
-
-// Upgrader is an extention interface used to inform a transport of the netconf
-// version after exchanging hello messages.  This is used by some transport to
-// change their behavior (like framing formats)
-type Upgrader interface {
-	// XXX: this should take a version (perhaps also return an error)?
-	Upgrade()
-}
