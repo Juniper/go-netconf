@@ -6,6 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
+	"time"
 )
 
 // ErrMalformedChunk represents a message that invalid as defined in the chunk
@@ -31,8 +34,11 @@ type frameWriter interface {
 // This is not a transport on it's own (missing the `Close` method) and is
 // intended to be embedded into other transports.
 type Framer struct {
-	r *bufio.Reader
-	w *bufio.Writer
+	r io.Reader
+	w io.Writer
+
+	br *bufio.Reader
+	bw *bufio.Writer
 
 	curReader frameReader
 	curWriter frameWriter
@@ -42,13 +48,62 @@ type Framer struct {
 
 // NewFramer return a new Framer to be used against the given io.Reader and io.Writer.
 func NewFramer(r io.Reader, w io.Writer) *Framer {
-	/*
-		w = io.MultiWriter(w, os.Stdout)
-		r = io.TeeReader(r, os.Stdout)
-	*/
-	return &Framer{
-		r: bufio.NewReader(r),
-		w: bufio.NewWriter(w),
+	f := &Framer{
+		r:  r,
+		w:  w,
+		br: bufio.NewReader(r),
+		bw: bufio.NewWriter(w),
+	}
+
+	capDir := os.Getenv("GONETCONF_FRAMED_CAPDIR")
+	if capDir != "" {
+		if err := os.MkdirAll(capDir, 0o755); err != nil {
+			panic(fmt.Sprintf("GO_NETCONF_FRAMER: failed to create capture output dir: %v", err))
+		}
+
+		ts := time.Now().Format(time.RFC3339)
+
+		inFilename := filepath.Join(capDir, ts+".in")
+		inf, err := os.Create(inFilename)
+		if err != nil {
+			panic(fmt.Sprintf("failed to create capture file %q: %v", inFilename, err))
+		}
+
+		outFilename := filepath.Join(capDir, ts+".out")
+		outf, err := os.Create(outFilename)
+		if err != nil {
+			panic(fmt.Sprintf("failed to create capture file %q: %v", inFilename, err))
+		}
+
+		f.DebugCapture(inf, outf)
+	}
+
+	return f
+}
+
+// DebugCapture will copy all *framed* input/output to the the given
+// `io.Writers` for sent or recv data.  Either sent of recv can be nil to not
+// capture any data.  Useful for displaying to a screen or capturing to a file
+// for debugging.
+//
+// This needs to be called before `MsgReader` or `MsgWriter`.
+func (f *Framer) DebugCapture(in io.Writer, out io.Writer) {
+	// XXX: should there be a sentinal flag to indicate write/read has been done already?
+	if f.curReader != nil ||
+		f.curWriter != nil ||
+		f.bw.Buffered() > 0 ||
+		f.br.Buffered() > 0 {
+		panic("debug capture added with active reader or writer")
+	}
+
+	if out != nil {
+		f.w = io.MultiWriter(f.w, out)
+		f.bw = bufio.NewWriter(f.w)
+	}
+
+	if in != nil {
+		f.r = io.TeeReader(f.r, in)
+		f.br = bufio.NewReader(f.r)
 	}
 }
 
@@ -56,6 +111,7 @@ func NewFramer(r io.Reader, w io.Writer) *Framer {
 // Chunked framing.  This is usually called after netconf exchanged the hello
 // messages.
 func (t *Framer) Upgrade() {
+	// XXX: do we need to protect against race conditions (atomic/mutux?)
 	t.upgraded = true
 }
 
@@ -73,9 +129,9 @@ func (t *Framer) MsgReader() (io.Reader, error) {
 	}
 
 	if t.upgraded {
-		t.curReader = &chunkReader{r: t.r}
+		t.curReader = &chunkReader{r: t.br}
 	} else {
-		t.curReader = &eomReader{r: t.r}
+		t.curReader = &eomReader{r: t.br}
 	}
 	return t.curReader, nil
 }
@@ -91,9 +147,9 @@ func (t *Framer) MsgWriter() (io.WriteCloser, error) {
 	}
 
 	if t.upgraded {
-		t.curWriter = &chunkWriter{w: t.w}
+		t.curWriter = &chunkWriter{w: t.bw}
 	} else {
-		t.curWriter = &eomWriter{w: t.w}
+		t.curWriter = &eomWriter{w: t.bw}
 	}
 	return t.curWriter, nil
 }
