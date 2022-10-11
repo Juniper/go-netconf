@@ -31,32 +31,13 @@ func WithCapability(capabilities ...string) SessionOption {
 	return capabilityOpt(capabilities)
 }
 
-var DefaultCapabilities = []string{
-	"urn:ietf:params:netconf:base:1.0",
-	"urn:ietf:params:netconf:base:1.1",
-
-	// XXX: these seems like server capabilities and i don't see why
-	// a client would need to send them
-
-	// "urn:ietf:params:netconf:capability:writable-running:1.0",
-	// "urn:ietf:params:netconf:capability:candidate:1.0",
-	// "urn:ietf:params:netconf:capability:confirmed-commit:1.0",
-	// "urn:ietf:params:netconf:capability:rollback-on-error:1.0",
-	// "urn:ietf:params:netconf:capability:startup:1.0",
-	// "urn:ietf:params:netconf:capability:url:1.0?scheme=http,ftp,file,https,sftp",
-	// "urn:ietf:params:netconf:capability:validate:1.0",
-	// "urn:ietf:params:netconf:capability:xpath:1.0",
-	// "urn:ietf:params:netconf:capability:notification:1.0",
-	// "urn:ietf:params:netconf:capability:interleave:1.0",
-	// "urn:ietf:params:netconf:capability:with-defaults:1.0",
-}
-
+// Session is represents a netconf session to a one given device.
 type Session struct {
 	tr        transport.Transport
 	sessionID uint64
 
-	clientCaps CapabilitySet
-	serverCaps CapabilitySet
+	clientCaps capabilitySet
+	serverCaps capabilitySet
 
 	mu      sync.Mutex
 	seq     uint64
@@ -64,6 +45,8 @@ type Session struct {
 	closing bool
 }
 
+// Open will create a new Session with th=e given transport and open it with the
+// nessesary hello messages.
 func Open(transport transport.Transport, opts ...SessionOption) (*Session, error) {
 	cfg := sessionConfig{
 		capabilities: DefaultCapabilities,
@@ -73,9 +56,8 @@ func Open(transport transport.Transport, opts ...SessionOption) (*Session, error
 	}
 
 	s := &Session{
-		tr: transport,
-		// XXX: fix me.  We doing sets or slices.  Figure it out man
-		clientCaps: NewCapabilitySet(cfg.capabilities...),
+		tr:         transport,
+		clientCaps: newCapabilitySet(cfg.capabilities...),
 		reqs:       make(map[uint64]chan RPCReplyMsg),
 	}
 
@@ -115,7 +97,7 @@ func (s *Session) hello() error {
 	if len(serverMsg.Capabilities) == 0 {
 		return fmt.Errorf("server did not return any capabilities")
 	}
-	s.serverCaps = NewCapabilitySet(serverMsg.Capabilities...)
+	s.serverCaps = newCapabilitySet(serverMsg.Capabilities...)
 
 	s.sessionID = serverMsg.SessionID
 
@@ -131,13 +113,27 @@ func (s *Session) hello() error {
 	return nil
 }
 
+// SessionID returns the current session ID exchanged in the hello messages.
+// Will return 0 if there is no session ID.
 func (s *Session) SessionID() uint64 {
 	return s.sessionID
+}
+
+// ClientCapabilties will return the capabilities initialized with the session.
+func (s *Session) ClientCapabilities() []string {
+	return s.clientCaps.All()
+}
+
+// ServcerCapabilties will return the capabilities returned by the server in
+// it's hello message.
+func (s *Session) ServerCapabilities() []string {
+	return s.serverCaps.All()
 }
 
 // startElement will walk though a xml.Decode until it finds a start element
 // and returns it.
 func startElement(d *xml.Decoder) (*xml.StartElement, error) {
+	// XXX: this needs to be cancelable? or will the underlying transport take care of it
 	for {
 		tok, err := d.Token()
 		if err != nil {
@@ -147,6 +143,7 @@ func startElement(d *xml.Decoder) (*xml.StartElement, error) {
 		if start, ok := tok.(xml.StartElement); ok {
 			return &start, nil
 		}
+		fmt.Println(tok)
 	}
 }
 
@@ -250,6 +247,9 @@ func (s *Session) send(msg *RPCMsg) (chan RPCReplyMsg, error) {
 
 }
 
+// Do issues a low level RPC call taking in a full RPCMsg and returning the full
+// RPCReplyMsg.  In most cases `Session.Call` will do what you want handling
+// errors and marshaling/unmarshaling your data.`
 func (s *Session) Do(ctx context.Context, msg *RPCMsg) (*RPCReplyMsg, error) {
 	ch, err := s.send(msg)
 	if err != nil {
@@ -271,6 +271,8 @@ func (s *Session) Do(ctx context.Context, msg *RPCMsg) (*RPCReplyMsg, error) {
 	}
 }
 
+// Call issues a rpc call for the given NETCONF operation and unmashaling the
+// respose into `resp`.
 func (s *Session) Call(ctx context.Context, op any, resp any) error {
 	msg := &RPCMsg{
 		Operation: op,
@@ -287,6 +289,8 @@ func (s *Session) Call(ctx context.Context, op any, resp any) error {
 		}
 	}
 
+	// XXX: Need to handle RPC errors here.
+
 	return nil
 }
 
@@ -297,9 +301,7 @@ func (s *Session) Close(ctx context.Context) error {
 	s.closing = true
 	s.mu.Unlock()
 
-	// Even is this call fails we want to close the underlying connection but
-	// perhaps the error is useful so save it and return it if there isn't
-	// any other encounterd.
+	// This may fail so save the error but still close the underlying transport.
 	rpcErr := s.Call(ctx, &closeSession{}, nil)
 
 	if err := s.tr.Close(); err != nil {
@@ -307,14 +309,4 @@ func (s *Session) Close(ctx context.Context) error {
 	}
 
 	return rpcErr
-}
-
-func (s *Session) ClientCapabilities() CapabilitySet {
-	// XXX: should we clone this? Do we care of someone is careless with the values
-	return s.clientCaps
-}
-
-func (s *Session) ServerCapabilities() CapabilitySet {
-	// XXX: should we clone this? Do we care of someone is careless with the values
-	return s.serverCaps
 }
