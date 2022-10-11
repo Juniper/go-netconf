@@ -2,8 +2,9 @@
 
 WARNING: This is currently pre-alpha quality.  The API isn't solid yet and a lot of testing still needs to be done as well as additional feaures.  
 
-[![GoDoc](https://godoc.org/github.com/nemith/go-netconf/v2?status.svg)](https://godoc.org/github.com/nemith/go-netconf/v2)
-[![Report Card](https://goreportcard.com/badge/github.com/nemith/go-netconf/v2)](https://goreportcard.com/report/github.com/nemith/go-netconf/v2)
+[![Go Reference](https://pkg.go.dev/badge/github.com/nemith/netconf.svg)](https://pkg.go.dev/github.com/nemith/netconf)
+[![Report Card](https://goreportcard.com/badge/github.com/nemith/netconf)](https://goreportcard.com/report/github.com/nemith/netconf)
+[![stability-unstable](https://img.shields.io/badge/stability-unstable-yellow.svg)](https://github.com/emersion/stability-badges#unstable)
 
 This library is used to create client applications for connecting to network devices via NETCONF.
 
