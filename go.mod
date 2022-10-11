@@ -1,10 +1,10 @@
 module github.com/nemith/go-netconf/v2
 
-go 1.18
+go 1.17
 
-require golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
+require golang.org/x/crypto v0.0.0-20221010152910-d6f0a8c073c2
 
 require (
-	go.uber.org/goleak v1.1.12
-	golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1 // indirect
+	go.uber.org/goleak v1.2.0
+	golang.org/x/sys v0.0.0-20221010170243-090e33056c14 // indirect
 )
