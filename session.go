@@ -133,7 +133,6 @@ func (s *Session) ServerCapabilities() []string {
 // startElement will walk though a xml.Decode until it finds a start element
 // and returns it.
 func startElement(d *xml.Decoder) (*xml.StartElement, error) {
-	// XXX: this needs to be cancelable? or will the underlying transport take care of it
 	for {
 		tok, err := d.Token()
 		if err != nil {
@@ -143,7 +142,6 @@ func startElement(d *xml.Decoder) (*xml.StartElement, error) {
 		if start, ok := tok.(xml.StartElement); ok {
 			return &start, nil
 		}
-		fmt.Println(tok)
 	}
 }
 
@@ -216,7 +214,7 @@ func (s *Session) replyChan(msgID uint64) (bool, chan RPCReplyMsg) {
 	return true, ch
 }
 
-func (s *Session) writeMsg(v any) error {
+func (s *Session) writeMsg(v interface{}) error {
 	w, err := s.tr.MsgWriter()
 	if err != nil {
 		return err
@@ -273,7 +271,7 @@ func (s *Session) Do(ctx context.Context, msg *RPCMsg) (*RPCReplyMsg, error) {
 
 // Call issues a rpc call for the given NETCONF operation and unmashaling the
 // respose into `resp`.
-func (s *Session) Call(ctx context.Context, op any, resp any) error {
+func (s *Session) Call(ctx context.Context, op interface{}, resp interface{}) error {
 	msg := &RPCMsg{
 		Operation: op,
 	}

@@ -15,9 +15,9 @@ type HelloMsg struct {
 
 // rpcMsg maps the xml value of <rpc> in RFC6241
 type RPCMsg struct {
-	XMLName   xml.Name `xml:"urn:ietf:params:xml:ns:netconf:base:1.0 rpc"`
-	MessageID uint64   `xml:"message-id,attr"`
-	Operation any      `xml:",innerxml"`
+	XMLName   xml.Name    `xml:"urn:ietf:params:xml:ns:netconf:base:1.0 rpc"`
+	MessageID uint64      `xml:"message-id,attr"`
+	Operation interface{} `xml:",innerxml"`
 }
 
 // rpcReplyMsg maps the xml value of <rpc-reply> in RFC6241
@@ -66,7 +66,7 @@ type RPCError struct {
 	AppTag   string      `xml:"error-app-tag,omitempty"`
 	Path     string      `xml:"error-path,omitempty"`
 	Message  string      `xml:"error-message,omitempty"`
-	Info     any         `xml:"error-info,omitempty"`
+	Info     interface{} `xml:"error-info,omitempty"`
 }
 
 func (e RPCError) Error() string {
