@@ -1,0 +1,32 @@
+name: validate
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v3
+      -
+        name: Lint
+        uses: dagger/dagger-for-github@v3
+        with:
+          cmds: do lint
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v3
+      -
+        name: Test
+        uses: dagger/dagger-for-github@v3
+        with:
+          cmds: do test

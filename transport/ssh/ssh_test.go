@@ -3,6 +3,7 @@ package ssh
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -105,8 +106,7 @@ func TestTransport(t *testing.T) {
 		go func() {
 			for req := range reqs {
 				if req.Type != "subsystem" || !bytes.Equal(req.Payload[4:], []byte("netconf")) {
-					// XXX: we cannot call t here.  This needs to be fixed.
-					t.Fatalf("unknown ssh request: %q: %q", req.Type, req.Payload)
+					panic(fmt.Sprintf("unknown ssh request: %q: %q", req.Type, req.Payload))
 				}
 				req.Reply(true, nil)
 			}
