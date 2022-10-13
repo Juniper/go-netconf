@@ -7,7 +7,6 @@ import (
 	"universe.dagger.io/alpha/go/golangci"
 )
 
-
 dagger.#Plan & {
 	actions: {
 		_code: core.#Source & {
@@ -18,15 +17,9 @@ dagger.#Plan & {
 			source: _code.output
 		}
 
-		test: {
-			"1.17": _
-			"1.18": _
-			"1.19": _
-
-			[v=string]: go.#Test & {
-				source:  _code.output
-				package: "./..."
-			}
+		test: go.#Test & {
+			source:  _code.output
+			package: "./..."
 		}
 	}
 }
