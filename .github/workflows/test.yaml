@@ -10,23 +10,21 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      -
-        name: Checkout
-        uses: actions/checkout@v3
-      -
-        name: Lint
-        uses: dagger/dagger-for-github@v3
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
         with:
-          cmds: do lint
+          go-version: 1.19
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
 
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: [ '1.17', '1.18', '1.19' ]
     steps:
-      -
-        name: Checkout
-        uses: actions/checkout@v3
-      -
-        name: Test
-        uses: dagger/dagger-for-github@v3
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
         with:
-          cmds: do test
+          go-version: ${{ matrix.go }}
+      - run: go test ./...
