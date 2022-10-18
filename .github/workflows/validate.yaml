@@ -11,9 +11,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions/setup-go@v3
         with:
           go-version: 1.19
+
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
 
@@ -24,7 +26,29 @@ jobs:
         go: [ '1.17', '1.18', '1.19' ]
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions/setup-go@v3
         with:
           go-version: ${{ matrix.go }}
-      - run: go test ./...
+
+      - run: go test . transport/...
+      
+  inttest: 
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
+
+      - name: Run containered integration tests
+        run: | 
+         cd inttest
+         make inttest

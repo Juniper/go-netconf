@@ -1,0 +1,7 @@
+ARG CSRX_IMAGE
+FROM $CSRX_IMAGE
+
+# Remove settings the core_pattern to allow to work in rootless podman
+RUN sed -i '/\/proc\/sys\/kernel\/core_pattern/d' /etc/rc.local
+
+COPY csrx.conf /config/juniper.conf

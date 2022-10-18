@@ -1,0 +1,22 @@
+version: "3"
+services:
+  inttest:
+    build:
+      context: ..
+      dockerfile: Dockerfile.inttest
+    environment:
+      - NETCONF_DUT_SSHADDR=dut:22
+      - NETCONF_DUT_SSHUSER=root
+      - NETCONF_DUT_SSHPASS=juniper123
+    depends_on:
+      dut:
+        condition: service_healthy
+  dut:
+    image: ghcr.io/nemith/netconf_dut_juniper_csrx:20.3R1.8
+    privileged: true
+    healthcheck:
+      test: nc -z localhost 22
+      interval: 10s
+      retries: 5
+      timeout: 5s
+    stop_signal: SIGTERM

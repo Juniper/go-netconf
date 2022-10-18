@@ -1,0 +1,7 @@
+FROM docker.io/library/golang:1.19-alpine
+
+COPY . /src
+
+WORKDIR /src/inttest
+
+ENTRYPOINT CGO_ENABLED=0 go test -v .
