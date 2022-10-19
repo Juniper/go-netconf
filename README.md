@@ -6,17 +6,19 @@
 
 This library is a simple NETCONF client based on [RFC6241](http://tools.ietf.org/html/rfc6241) and [RFC6242](http://tools.ietf.org/html/rfc6242) (although not fully compliant yet).
 
-> **Note:** this is currently pre-alpha release.  API and features may and probably will change.  Suggestions and pull requests are welcome.
+> **Note:** This is currently pre-alpha release.  API and features may and probably will change.  Suggestions and pull requests are welcome.
 
 ## Features
-* Support for SSH transport using go.crypto/ssh. (Other transports are planned).
+* Support for SSH transport using `golang.org/x/crypto/ssh`. (Other transports are planned).
 * Built in RPC support (in progress).
 * Support for custom RPCs.
 * Independent of XML library.  Free to choose encoding/xml or another third party library to parse the results.
 
 ## Install
 * Requires Go 1.9 or later!
-* `go get github.com/Juniper/go-netconf/netconf`
+```bash
+$ go get github.com/Juniper/go-netconf/netconf
+```
 
 ## Example
 * See examples in `examples/` directory.
