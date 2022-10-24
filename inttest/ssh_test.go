@@ -2,6 +2,7 @@ package inttest
 
 import (
 	"context"
+	"net"
 	"os"
 	"testing"
 
@@ -33,9 +34,14 @@ func sshAuth(t *testing.T) ssh.AuthMethod {
 }
 
 func TestSSHConnect(t *testing.T) {
-	addr := os.Getenv("NETCONF_DUT_SSHADDR")
-	if addr == "" {
-		t.Skip("NETCONF_DUT_SSHADDR not set, skipping test")
+	host := os.Getenv("NETCONF_DUT_SSHHOST")
+	if host == "" {
+		t.Skip("NETCONF_DUT_SSHHOST not set, skipping test")
+	}
+
+	port := os.Getenv("NETCONF_DUT_SSHPORT")
+	if port == "" {
+		port = "22"
 	}
 
 	user := os.Getenv("NETCONF_DUT_SSHUSER")
@@ -49,6 +55,7 @@ func TestSSHConnect(t *testing.T) {
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 
+	addr := net.JoinHostPort(host, port)
 	t.Logf("connecting to %s", addr)
 
 	ctx := context.Background()

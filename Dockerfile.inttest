@@ -1,7 +1,12 @@
 FROM docker.io/library/golang:1.19-alpine
 
+# required for wait-for-hello.sh script
+RUN apk add \
+    openssh \
+    sshpass \
+    perl-xml-xpath 
+
 COPY . /src
 
 WORKDIR /src/inttest
-
-ENTRYPOINT CGO_ENABLED=0 go test -v .
+CMD CGO_ENABLED=0 go test -v .
