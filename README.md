@@ -91,3 +91,14 @@ You can now run the csrx integration tests using Docker which sets up all the en
 $ cd inttest
 $ make inttest-csrx
 ```
+
+#### Arista cEOS-lab
+Arista provides cEOS-lab images to be used for lab testing.  Don't conuse with cEOS which is similar but made for production hardware enviroments. 
+
+Like cSRX the image is locked away behind a login.  You can find all downloades at https://www.arista.com/en/support/software-download. *At the time of this writing the latest M release is cEOS64-lab-4.28.3M.  Other versions may or may not work similarly.  Pleae feel free to test!*
+
+> **Note**
+> You may have to be an Arista customer to be able to download the image?
+
+1. Download desired EOS lab image from https://www.arista.com/en/support/software-download.  You can download either the 64bit or non-64bit images.  
+2. Run the following command to import the image locally: `docker import cEOS64-lab-4.28.3M.tar.xz ceos64-lab:4.28.3M`

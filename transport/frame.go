@@ -120,7 +120,7 @@ func (t *Framer) Upgrade() {
 //
 // Only one reader can be used at a time.  When this is called with an existing
 // reader then the underlying reader is avanced to the start of the next message
-// and invalidates the old reader beffore returning a new one.
+// and invalidates the old reader before returning a new one.
 func (t *Framer) MsgReader() (io.Reader, error) {
 	if t.curReader != nil {
 		if err := t.curReader.advance(); err != nil {
@@ -353,15 +353,15 @@ func (r *eomReader) ReadByte() (byte, error) {
 		peeked, err := r.r.Peek(len(endOfMsg) - 1)
 		if err != nil {
 			if err == io.EOF {
-				return b, io.ErrUnexpectedEOF
+				return 0, io.ErrUnexpectedEOF
 			}
-			return b, err
+			return 0, err
 		}
 
 		// check if we are at the end of the message
 		if bytes.Equal(peeked, endOfMsg[1:]) {
 			r.r.Discard(len(endOfMsg) - 1)
-			return b, io.EOF
+			return 0, io.EOF
 		}
 	}
 
@@ -388,11 +388,6 @@ func (w *eomWriter) Close() error {
 	}
 
 	if _, err := w.w.Write(endOfMsg); err != nil {
-		return err
-	}
-
-	// Not part of the spec but junos complains when this isn't a newline
-	if err := w.w.WriteByte('\n'); err != nil {
 		return err
 	}
 

@@ -158,7 +158,7 @@ func TestTransport(t *testing.T) {
 	// wait for the server to close
 	<-srvDone
 
-	want := out + "\n]]>]]>\n"
+	want := out + "\n]]>]]>"
 	if srvIn.String() != want {
 		t.Errorf("unexpected data received by server: (want: %q, got %q)", want, srvIn.String())
 	}

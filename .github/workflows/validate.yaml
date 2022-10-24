@@ -8,6 +8,7 @@ on:
 
 jobs:
   lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -20,6 +21,7 @@ jobs:
         uses: golangci/golangci-lint-action@v3
 
   test:
+    name: Unit Tests
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -34,7 +36,11 @@ jobs:
       - run: go test . transport/...
       
   inttest: 
+    name: Integration Tests
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [ 'ceos', 'csrx' ]
     steps:
       - uses: actions/checkout@v3
 
@@ -44,14 +50,11 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: actions/setup-go@v3
-        with:
-          go-version: 1.19
-
       - name: Run containered integration tests
         env:
           # Private images for testing
           CSRX_IMAGE: ghcr.io/nemith/netconf_dut_juniper_csrx:20.3R1.8
+          CEOS_IMAGE: ghcr.io/nemith/netconf_dut_arista_ceos64-lab:4.28.3M
         run: | 
          cd inttest
-         make inttest
+         make ${{ matrix.target }}

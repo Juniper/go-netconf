@@ -193,12 +193,19 @@ Loop:
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	// Close all outstanding requests
+	for _, ch := range s.reqs {
+		close(ch)
+	}
+
 	if err == io.EOF || err == io.ErrUnexpectedEOF {
 		if s.closing {
 			return
 		}
 	}
-	// Close the connection
+
+	// XXX: This isn't right either.
 	log.Fatal(err)
 }
 
@@ -255,7 +262,11 @@ func (s *Session) Do(ctx context.Context, msg *RPCMsg) (*RPCReplyMsg, error) {
 	}
 
 	select {
-	case reply := <-ch:
+	case reply, ok := <-ch:
+		if !ok {
+			// XXX: What error should be returned from here if the channel is closed
+			return nil, io.EOF
+		}
 		return &reply, nil
 	case <-ctx.Done():
 		// remove any existing request
@@ -302,9 +313,13 @@ func (s *Session) Close(ctx context.Context) error {
 	// This may fail so save the error but still close the underlying transport.
 	rpcErr := s.Call(ctx, &closeSession{}, nil)
 
-	if err := s.tr.Close(); err != nil {
+	if err := s.tr.Close(); err != nil && err != io.EOF {
 		return err
 	}
 
-	return rpcErr
+	if rpcErr != io.EOF {
+		return rpcErr
+	}
+
+	return nil
 }

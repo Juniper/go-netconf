@@ -1,0 +1,35 @@
+version: "3"
+services:
+  inttest:
+    build:
+      context: ..
+      dockerfile: Dockerfile.inttest
+    environment:
+      NETCONF_DUT_SSHHOST: ceos
+      NETCONF_DUT_SSHPORT: 830
+      NETCONF_DUT_SSHUSER: admin
+      NETCONF_DUT_SSHPASS: admin 
+      NETCONF_DUT_FLAVOR: eos
+    depends_on:
+      - ceos
+    command: >
+      sh -c "./wait-for-hello.sh
+      -s $$NETCONF_DUT_SSHPASS
+      -p $$NETCONF_DUT_SSHPORT
+      $$NETCONF_DUT_SSHUSER@$$NETCONF_DUT_SSHHOST &&
+      CGO_ENABLED=0 go test -v ."
+  ceos:
+    image: ${CEOS_IMAGE:?}
+    environment:
+      INTFTYPE: eth
+      ETBA: 1
+      SKIP_ZEROTOUCH_BARRIER_IN_SYSDBINIT: 1
+      CEOS: 1
+      EOS_PLATFORM: ceoslab
+      container: docker
+    privileged: true
+    tty: true
+    stop_signal: SIGTERM
+    command: sh -c "cp /mnt/flash/initial-config /mnt/flash/startup-config; exec /sbin/init systemd.setenv=INTFTYPE=eth systemd.setenv=ETBA=1 systemd.setenv=SKIP_ZEROTOUCH_BARRIER_IN_SYSDBINIT=1 systemd.setenv=CEOS=1 systemd.setenv=EOS_PLATFORM=ceoslab systemd.setenv=container=docker"
+    volumes:
+      - ./ceos.conf:/mnt/flash/initial-config:ro

@@ -58,12 +58,14 @@ tries=0
 endtime=$(($(date +%s) + timeout))
 while [ "$(date -u +%s)" -le "$endtime" ]; do
     echo "${orig_ssh_cmd}"
-    out=$(echo | ${ssh_cmd} | sed 's/]]>]]>//')
-    session_id=$(echo "$out" | xpath -q -e 'hello/session-id/text()')
 
-    if [ -n "$session_id" ]; then
-        printf "wait-for-hello: success! session-id: %d\n" "${session_id}" >&2
-         exit 0
+    if out=$(echo | ${ssh_cmd}); then
+        session_id=$(echo "$out" | sed 's/]]>]]>//' | xpath -q -e 'hello/session-id/text()')
+
+        if [ -n "$session_id" ]; then
+            printf "wait-for-hello: success! session-id: %d\n" "${session_id}" >&2
+            exit 0
+        fi
     fi
 
     tries=$((tries+1))

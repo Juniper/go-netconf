@@ -33,7 +33,9 @@ func sshAuth(t *testing.T) ssh.AuthMethod {
 	return nil
 }
 
-func TestSSHConnect(t *testing.T) {
+func setupSSH(t *testing.T) *netconf.Session {
+	t.Helper()
+
 	host := os.Getenv("NETCONF_DUT_SSHHOST")
 	if host == "" {
 		t.Skip("NETCONF_DUT_SSHHOST not set, skipping test")
@@ -65,13 +67,8 @@ func TestSSHConnect(t *testing.T) {
 	}
 
 	// capture the framed communication
-	inCap := newLogWriter("<--", t)
-	outCap := newLogWriter("-->", t)
-
-	defer func() {
-		inCap.Close()
-		outCap.Close()
-	}()
+	inCap := newLogWriter("<<<", t)
+	outCap := newLogWriter(">>>", t)
 
 	tr.DebugCapture(inCap, outCap)
 
@@ -79,6 +76,11 @@ func TestSSHConnect(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create session: %v", err)
 	}
+	return session
+}
+
+func TestSSHGetConfig(t *testing.T) {
+	session := setupSSH(t)
 
 	if session.SessionID() <= 0 {
 		t.Fatalf("invalid session id: %d", session.SessionID())
@@ -88,8 +90,14 @@ func TestSSHConnect(t *testing.T) {
 		t.Fatalf("invalid server capabilities for session")
 	}
 
-	// XXX: GetConfig
+	ctx := context.Background()
+	config, err := session.GetConfig(ctx, "running")
+	if err != nil {
+		t.Errorf("failed to call get-config: %v", err)
+	}
+	t.Logf("configuration: %s", config)
 
+	// XXX: GetConfig
 	if err := session.Close(ctx); err != nil {
 		t.Fatalf("failed to close session: %v", err)
 	}
