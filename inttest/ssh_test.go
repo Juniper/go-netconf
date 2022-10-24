@@ -41,7 +41,7 @@ func TestSSHConnect(t *testing.T) {
 
 	port := os.Getenv("NETCONF_DUT_SSHPORT")
 	if port == "" {
-		port = "22"
+		port = "830"
 	}
 
 	user := os.Getenv("NETCONF_DUT_SSHUSER")
