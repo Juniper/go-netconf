@@ -49,6 +49,9 @@ jobs:
           go-version: 1.19
 
       - name: Run containered integration tests
+        env:
+          # Private images for testing
+          CSRX_IMAGE: ghcr.io/nemith/netconf_dut_juniper_csrx:20.3R1.8
         run: | 
          cd inttest
          make inttest

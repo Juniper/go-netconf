@@ -20,7 +20,7 @@ services:
       $$NETCONF_DUT_SSHUSER@$$NETCONF_DUT_SSHHOST &&
       CGO_ENABLED=0 go test -v ."
   csrx:
-    image: ${CSRX_IMAGE:-ghcr.io/nemith/netconf_dut_juniper_csrx:20.3R1.8}
+    image: ${CSRX_IMAGE:?}
     environment:
       - CSRX_JUNOS_CONFIG=/root/initial.conf
     privileged: true
