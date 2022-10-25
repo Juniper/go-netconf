@@ -1,0 +1,27 @@
+FROM debian:stable-slim
+
+RUN apt-get update && apt-get -y install \
+    build-essential \
+    make \
+    openssh-client \
+    openssl \
+    psmisc \
+    python-is-python3 \
+    python3 \
+    unzip 
+
+RUN mkdir -p /tmp/confd
+COPY confd-basic-7.8.3.linux.x86_64.zip /tmp/confd
+
+WORKDIR /tmp/confd
+RUN unzip confd-basic-7.8.3.linux.x86_64.zip 
+RUN ./confd-basic-7.8.3.linux.x86_64.signed.bin
+RUN ./confd-basic-7.8.3.linux.x86_64.installer.bin /opt/confd
+
+RUN rm -rf /tmp/confd
+
+RUN useradd -p admin admin
+
+WORKDIR /opt/confd
+
+CMD /opt/confd/bin/confd --foreground --stop-on-eof

@@ -26,3 +26,11 @@ ceos:
 		--remove-orphans \
 		--abort-on-container-exit \
 		--exit-code-from inttest
+
+CONFD_IMAGE ?= "confd-basic:7.8.3"
+confd:
+	CONFD_IMAGE=$(CONFD_IMAGE) docker-compose -f docker-compose.confd.yml up \
+		--build \
+		--remove-orphans \
+		--abort-on-container-exit \
+		--exit-code-from inttest

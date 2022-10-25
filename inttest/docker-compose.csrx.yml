@@ -7,7 +7,6 @@ services:
     environment:
       NETCONF_DUT_SSHHOST: csrx
       NETCONF_DUT_SSHPORT: 22
-      NETCONF_DUT_SSHADDR: csrx:22
       NETCONF_DUT_SSHUSER: root
       NETCONF_DUT_SSHPASS: juniper123
       NETCONF_DUT_FLAVOR: junos
