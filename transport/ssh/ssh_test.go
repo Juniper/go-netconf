@@ -78,7 +78,7 @@ func newTestServer(t *testing.T, handlerFn func(*testing.T, ssh.Channel, <-chan 
 
 		for newChannel := range chans {
 			if newChannel.ChannelType() != "session" {
-				newChannel.Reject(ssh.UnknownChannelType, "unknown channel type")
+				_ = newChannel.Reject(ssh.UnknownChannelType, "unknown channel type")
 				continue
 			}
 
@@ -108,11 +108,11 @@ func TestTransport(t *testing.T) {
 				if req.Type != "subsystem" || !bytes.Equal(req.Payload[4:], []byte("netconf")) {
 					panic(fmt.Sprintf("unknown ssh request: %q: %q", req.Type, req.Payload))
 				}
-				req.Reply(true, nil)
+				_ = req.Reply(true, nil)
 			}
 		}()
-		io.WriteString(ch, "muffins]]>]]>")
-		io.Copy(&srvIn, ch)
+		_, _ = io.WriteString(ch, "muffins]]>]]>")
+		_, _ = io.Copy(&srvIn, ch)
 		close(srvDone)
 	})
 	if err != nil {
@@ -145,7 +145,7 @@ func TestTransport(t *testing.T) {
 	}
 
 	out := "a man a plan a canal panama"
-	io.WriteString(w, out)
+	_, _ = io.WriteString(w, out)
 
 	if err := w.Close(); err != nil {
 		t.Errorf("failed to close message writer: %v", err)

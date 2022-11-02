@@ -171,7 +171,7 @@ func BenchmarkChunkedReadByte(b *testing.B) {
 		b.Run(bc.name, func(b *testing.B) {
 			b.ReportAllocs()
 			for i := 0; i < b.N; i++ {
-				bc.r.ReadByte()
+				_, _ = bc.r.ReadByte()
 				b.SetBytes(1)
 			}
 		})
@@ -357,7 +357,7 @@ func BenchmarkEOMReadByte(b *testing.B) {
 		b.Run(bc.name, func(b *testing.B) {
 			b.ReportAllocs()
 			for i := 0; i < b.N; i++ {
-				bc.r.ReadByte()
+				_, _ = bc.r.ReadByte()
 				b.SetBytes(1)
 			}
 		})

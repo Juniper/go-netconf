@@ -1,4 +1,0 @@
-linters:
-  disable:
-    # temporarily disable 
-    - errcheck

@@ -193,7 +193,10 @@ func (r *chunkReader) readHeader() error {
 	default:
 		return err
 	}
-	r.r.Discard(2)
+
+	if _, err := r.r.Discard(2); err != nil {
+		return err
+	}
 
 	// make sure the preable of `\n#` which is used for both the start of a
 	// chuck and the end-of-chunk marker is valid.
@@ -203,7 +206,9 @@ func (r *chunkReader) readHeader() error {
 
 	// check to see if we are at the end of the read
 	if peeked[2] == '#' && peeked[3] == '\n' {
-		r.r.Discard(2)
+		if _, err := r.r.Discard(2); err != nil {
+			return err
+		}
 		return io.EOF
 	}
 
@@ -360,7 +365,10 @@ func (r *eomReader) ReadByte() (byte, error) {
 
 		// check if we are at the end of the message
 		if bytes.Equal(peeked, endOfMsg[1:]) {
-			r.r.Discard(len(endOfMsg) - 1)
+			if _, err := r.r.Discard(len(endOfMsg) - 1); err != nil {
+				return 0, err
+			}
+
 			return 0, io.EOF
 		}
 	}
