@@ -1,0 +1,63 @@
+FROM alpine:3.16 as build
+
+RUN apk add --no-cache \
+    bash \
+    cmake \
+    curl \
+    g++ \
+    gcc \ 
+    libc-dev \
+    libssh-dev \
+    linux-pam-dev \
+    make \
+    openssl \
+    openssl-dev \
+    pcre2-dev
+
+WORKDIR /tmp
+
+# Build and install libyang
+RUN curl -Lo libyang-2.0.231.tar.gz https://github.com/CESNET/libyang/archive/refs/tags/v2.0.231.tar.gz 
+RUN tar zxfv libyang-2.0.231.tar.gz
+RUN (cd /tmp/libyang-2.0.231 && \
+     mkdir build && \
+     cd build && \ 
+     cmake .. && \
+     make  && \
+     make install)
+
+# Build and install libnetconf2
+RUN curl -Lo libnetconf2-2.1.18.tar.gz https://github.com/CESNET/libnetconf2/archive/refs/tags/v2.1.18.tar.gz
+RUN tar zxfv libnetconf2-2.1.18.tar.gz
+RUN (cd /tmp/libnetconf2-2.1.18 && \
+     mkdir build && \
+     cd build && \
+     cmake .. && \
+     make && \
+     make install)
+
+# Build and install sysrepo 
+RUN curl -Lo sysrepo-2.1.84.tar.gz https://github.com/sysrepo/sysrepo/archive/refs/tags/v2.1.84.tar.gz
+RUN tar zxfv sysrepo-2.1.84.tar.gz
+RUN (cd /tmp/sysrepo-2.1.84 && \
+     mkdir build && \
+     cd build && \
+     cmake .. && \
+     make && \
+     make install)
+
+# Build and install netopeer2
+RUN curl -Lo netopeer2-2.1.36.tar.gz https://github.com/CESNET/netopeer2/archive/refs/tags/v2.1.36.tar.gz 
+RUN tar zxfv netopeer2-2.1.36.tar.gz
+RUN (cd /tmp/netopeer2-2.1.36 && \
+     mkdir build && \
+     cd build && \
+     cmake .. && \
+     make && \
+     make install)
+
+# add a netconf user with a password
+RUN adduser -D netconf
+RUN echo netconf:netconf | chpasswd
+
+CMD netopeer2-server -d -v2

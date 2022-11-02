@@ -34,3 +34,11 @@ confd:
 		--remove-orphans \
 		--abort-on-container-exit \
 		--exit-code-from inttest
+
+netopeer2:
+	docker-compose -f docker-compose.netopeer2.yml up \
+		--build \
+		--remove-orphans \
+		--abort-on-container-exit \
+		--exit-code-from inttest
+   

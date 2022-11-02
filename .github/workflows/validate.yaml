@@ -44,6 +44,7 @@ jobs:
           - ceos
           - csrx
           - confd
+          - netopeer2
     steps:
       - uses: actions/checkout@v3
 
