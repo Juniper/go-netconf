@@ -1,4 +1,4 @@
-name: validate
+name: Validate
 
 on:
   push:
@@ -34,8 +34,8 @@ jobs:
           go-version: ${{ matrix.go }}
 
       - run: go test . transport/...
-      
-  inttest: 
+
+  inttest:
     name: Integration Tests
     runs-on: ubuntu-latest
     strategy:
@@ -60,6 +60,6 @@ jobs:
           CSRX_IMAGE: ghcr.io/nemith/netconf_dut_juniper_csrx:20.3R1.8
           CEOS_IMAGE: ghcr.io/nemith/netconf_dut_arista_ceos64-lab:4.28.3M
           CONFD_IMAGE: ghcr.io/nemith/netconf_dut_tailf_confd:7.8.3
-        run: | 
+        run: |
          cd inttest
          make ${{ matrix.target }}

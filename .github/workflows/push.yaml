@@ -1,0 +1,54 @@
+name: Push
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout main branch
+        uses: actions/checkout@v3
+
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
+
+      - run: go test -coverprofile=cover.out . transport/...
+
+      - name: checkout covrage branch
+        uses: actions/checkout@v3
+        with:
+          ref: 'coverage'
+          path: coverage
+
+      - run: go tool cover -html=cover.out -o coverage/coverage.html
+
+      - name: generate badge
+        run: |
+          set -x
+          total=`go tool cover -func=cover.out | grep total | grep -Eo '[0-9]+\.[0-9]+'`
+
+          if (( $(echo "$total <= 50" | bc -l) )) ; then
+            COLOR=red
+          elif (( $(echo "$total > 80" | bc -l) )); then
+            COLOR=green
+          else
+            COLOR=orange
+          fi
+          curl https://img.shields.io/badge/Coverage-$total%25-$COLOR > coverage/badge.svg
+
+      - name: commit coverage output
+        working-directory: coverage
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add .
+          git commit --allow-empty -m "update coverage"
+
+      - name: push coverage branch
+        working-directory: coverage
+        run: git push
