@@ -33,7 +33,7 @@ jobs:
         with:
           go-version: ${{ matrix.go }}
 
-      - run: go test . transport/...
+      - run: go test ./...
 
   inttest:
     name: Integration Tests

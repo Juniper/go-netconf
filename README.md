@@ -1,10 +1,11 @@
 # Go `netconf` client library
 
-WARNING: This is currently pre-alpha quality.  The API isn't solid yet and a lot of testing still needs to be done as well as additional feaures.  
+WARNING: This is currently pre-alpha quality.  The API isn't solid yet and a lot of testing still needs to be done as well as additional feaures.
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/nemith/netconf.svg)](https://pkg.go.dev/github.com/nemith/netconf)
 [![Report Card](https://goreportcard.com/badge/github.com/nemith/netconf)](https://goreportcard.com/report/github.com/nemith/netconf)
 [![stability-unstable](https://img.shields.io/badge/stability-unstable-yellow.svg)](https://github.com/emersion/stability-badges#unstable)
+[![coverage](https://raw.githubusercontent.com/nemith/netconf/coverage/badge.svg)](http://htmlpreview.github.io/?https://github.com/nemith/netconf/blob/coverage/coverage.html)
 
 This library is used to create client applications for connecting to network devices via NETCONF.
 
@@ -40,7 +41,7 @@ See [TODO.md](TODO.md) for a list of what is left to implement these features.
 * **Much cleaner, idomatic API, less dumb** I, @nemith, was the original creator of the netconf package and it was my very first Go project and it shows.  There are number of questionable API design, code, and a lot of odd un tested bugs.  Really this rewrite was created to fix this.
 * **No impled vendor ownership** Moving the project out of the `Juniper` organization allowes better control over the project, less implied support (or lack there of), and hopefully more contributions.
 * **Transports are implemented in their own packages.**  This means if you are not using SSH or TLS you don't need to bring in the underlying depdendencies into your binary.
-* **Stream based transports.**  Should mean less memory usage and much less allocation bringing overall performance higher. 
+* **Stream based transports.**  Should mean less memory usage and much less allocation bringing overall performance higher.
 
 ### Differences from [`github.com/scrapli/scrapligo/driver/netconf`](https://pkg.go.dev/github.com/scrapli/scrapligo/driver/netconf)
 Scrapligo driver is quite good and way better than the original juniper project.  However this new package concentrates more on RFC correctness and implementing some of the more advanced RFC features like call-home and event notifications.  If there is a desire there could be some callaboration with scrapligo in the future.

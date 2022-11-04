@@ -17,7 +17,7 @@ services:
       -s $$NETCONF_DUT_SSHPASS
       -p $$NETCONF_DUT_SSHPORT
       $$NETCONF_DUT_SSHUSER@$$NETCONF_DUT_SSHHOST &&
-      CGO_ENABLED=0 go test -v ."
+      CGO_ENABLED=0 go test -tags=inttest -v ."
   csrx:
     image: ${CSRX_IMAGE:?}
     environment:

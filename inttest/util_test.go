@@ -1,3 +1,6 @@
+//go:build inttest
+// +build inttest
+
 package inttest
 
 import (
