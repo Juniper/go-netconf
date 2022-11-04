@@ -1,7 +1,6 @@
 package netconf
 
 import (
-	"context"
 	"encoding/xml"
 	"time"
 )
@@ -13,14 +12,14 @@ type HelloMsg struct {
 	Capabilities []string `xml:"capabilities>capability"`
 }
 
-// rpcMsg maps the xml value of <rpc> in RFC6241
+// RPCMsg maps the xml value of <rpc> in RFC6241
 type RPCMsg struct {
 	XMLName   xml.Name    `xml:"urn:ietf:params:xml:ns:netconf:base:1.0 rpc"`
 	MessageID uint64      `xml:"message-id,attr"`
 	Operation interface{} `xml:",innerxml"`
 }
 
-// rpcReplyMsg maps the xml value of <rpc-reply> in RFC6241
+// RPCReplyMsg maps the xml value of <rpc-reply> in RFC6241
 type RPCReplyMsg struct {
 	XMLName   xml.Name `xml:"urn:ietf:params:xml:ns:netconf:base:1.0 rpc-reply"`
 	MessageID uint64   `xml:"message-id,attr"`
@@ -46,8 +45,6 @@ const (
 	SevWarning ErrSeverity = "warning"
 )
 
-type Capability string
-
 type ErrType string
 
 const (
@@ -72,51 +69,3 @@ type RPCError struct {
 func (e RPCError) Error() string {
 	return e.Message
 }
-
-// XXX: RPC calls these either Methods or Operations depending on what you look at.
-type GetConfigRPC struct {
-	Source StringElem
-	Filter Filter
-}
-
-type GetConfigResp struct {
-}
-
-func (s *Session) GetConfig(ctx context.Context, source string) ([]byte, error) {
-	method := struct {
-		// XXX do these need namespaced as well?
-		XMLName xml.Name   `xml:"get-config"`
-		Source  StringElem `xml:"source"`
-		// Filter
-	}{Source: StringElem(source)}
-
-	resp := struct {
-		// XXX do these need namespaced as well?
-		XMLName xml.Name `xml:"data"`
-		Config  []byte   `xml:",innerxml"`
-	}{}
-
-	if err := s.Call(ctx, &method, &resp); err != nil {
-		return nil, err
-	}
-
-	return resp.Config, nil
-}
-
-type OKResponse struct {
-	Ok SentinalBool `xml:"ok"`
-}
-
-// <get-config>
-//    source, filter
-//
-// <edit-config>
-//    operation,
-
-// <copy-config>
-// <delete-config>
-// <lock>
-// <unlock>
-// <get>
-// <close>  // already implemented and hidden...
-// <kill-session>

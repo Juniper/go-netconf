@@ -1,43 +1,99 @@
 package netconf
 
 import (
-	"bytes"
+	"fmt"
 	"io"
-	"strings"
 	"testing"
 )
 
 type testServer struct {
-	outMsgs []string
-	inMsgs  []string
+	t   *testing.T
+	in  chan []byte
+	out chan []byte
 }
 
-func (ts *testServer) MsgReader() (io.Reader, error) {
-	if len(ts.outMsgs) == 0 {
-		return nil, io.EOF // XXX: right error?
+func newTestServer(t *testing.T) *testServer {
+	return &testServer{
+		t:   t,
+		in:  make(chan []byte),
+		out: make(chan []byte),
+	}
+}
+
+func (s *testServer) handle(r io.Reader, w io.WriteCloser) {
+	in, err := io.ReadAll(r)
+	if err != nil {
+		panic(fmt.Sprintf("testerver: failed to read incomming message: %v", err))
+	}
+	s.t.Logf("testserver recv: %s", in)
+	go func() { s.in <- in }()
+
+	out, ok := <-s.out
+	if !ok {
+		panic("testserver: no message to send")
+	}
+	s.t.Logf("tesserver send: %s", out)
+
+	_, err = w.Write(out)
+	if err != nil {
+		panic(fmt.Sprintf("testserver: failed to write message: %v", err))
 	}
 
-	r := strings.NewReader(ts.outMsgs[0])
-	ts.outMsgs = ts.outMsgs[1:]
-	return r, nil
+	if err := w.Close(); err != nil {
+		panic("tesserver: failed to close outbound message")
+	}
 }
 
-func (ts *testServer) MsgWriter() (io.WriteCloser, error) {
-	return &testMsgWriter{ts: ts}, nil
+func (s *testServer) queueResp(p []byte)         { go func() { s.out <- p }() }
+func (s *testServer) queueRespString(str string) { s.queueResp([]byte(str)) }
+func (s *testServer) popReq() ([]byte, error) {
+	msg, ok := <-s.in
+	if !ok {
+		return nil, fmt.Errorf("testserver: no message to read:")
+	}
+	return msg, nil
 }
 
-type testMsgWriter struct {
-	ts *testServer
-	bytes.Buffer
+func (s *testServer) popReqString() (string, error) {
+	p, err := s.popReq()
+	return string(p), err
 }
 
-func (w *testMsgWriter) Close() error {
-	// XXX: error if previous write not closed
-	w.ts.inMsgs = append(w.ts.inMsgs, w.String())
+func (s *testServer) transport() *testTransport { return newTestTransport(s.handle) }
+
+type testTransport struct {
+	handler func(r io.Reader, w io.WriteCloser)
+	out     chan io.Reader
+	// msgReceived, msgSent int
+}
+
+func newTestTransport(handler func(r io.Reader, w io.WriteCloser)) *testTransport {
+	return &testTransport{
+		handler: handler,
+		out:     make(chan io.Reader),
+	}
+}
+
+func (s *testTransport) MsgReader() (io.Reader, error) {
+	return <-s.out, nil
+}
+
+func (s *testTransport) MsgWriter() (io.WriteCloser, error) {
+	inr, inw := io.Pipe()
+	outr, outw := io.Pipe()
+
+	go func() { s.out <- outr }()
+	go s.handler(inr, outw)
+
+	return inw, nil
+}
+
+func (s *testTransport) Close() error {
+	if len(s.out) > 0 {
+		return fmt.Errorf("testtransport: remaining outboard messages not sent at close")
+	}
 	return nil
 }
-
-func (tw *testServer) Close() error { return nil }
 
 const (
 	helloGood = `
@@ -84,22 +140,24 @@ func TestHello(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			ts := &testServer{outMsgs: []string{tc.serverHello}}
-			sess := &Session{tr: ts}
+			ts := newTestServer(t)
+			sess := &Session{tr: ts.transport()}
+
+			ts.queueRespString(tc.serverHello)
 
 			err := sess.hello()
 			if err != nil && !tc.shouldError {
 				t.Errorf("unexpected error: %v", err)
 			}
 
-			if len(ts.inMsgs) != 1 {
-				t.Errorf("number of messages written to server wrong (want 1, got %d)", len(ts.inMsgs))
+			_, err = ts.popReqString()
+			if err != nil {
+				t.Error("failed to get response")
 			}
 
 			if sess.SessionID() != tc.wantID {
-				t.Errorf("session id does not match (want %q got %q)", tc.wantID, sess.SessionID())
+				t.Errorf("session id does not match (want: %q got: %q)", tc.wantID, sess.SessionID())
 			}
 		})
 	}
-	// tests
 }

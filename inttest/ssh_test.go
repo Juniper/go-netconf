@@ -89,7 +89,7 @@ func TestSSHGetConfig(t *testing.T) {
 		t.Fatalf("invalid session id: %d", session.SessionID())
 	}
 
-	if len(session.ServerCapabilities()) <= 0 {
+	if len(session.ServerCapabilities()) == 0 {
 		t.Fatalf("invalid server capabilities for session")
 	}
 

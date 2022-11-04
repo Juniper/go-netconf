@@ -45,12 +45,11 @@ type Session struct {
 	closing bool
 }
 
-// Open will create a new Session with th=e given transport and open it with the
-// nessesary hello messages.
-func Open(transport transport.Transport, opts ...SessionOption) (*Session, error) {
+func newSession(transport transport.Transport, opts ...SessionOption) *Session {
 	cfg := sessionConfig{
 		capabilities: DefaultCapabilities,
 	}
+
 	for _, opt := range opts {
 		opt.apply(&cfg)
 	}
@@ -60,6 +59,13 @@ func Open(transport transport.Transport, opts ...SessionOption) (*Session, error
 		clientCaps: newCapabilitySet(cfg.capabilities...),
 		reqs:       make(map[uint64]chan RPCReplyMsg),
 	}
+	return s
+}
+
+// Open will create a new Session with th=e given transport and open it with the
+// nessesary hello messages.
+func Open(transport transport.Transport, opts ...SessionOption) (*Session, error) {
+	s := newSession(transport, opts...)
 
 	// this needs a timeout of some sort.
 	if err := s.hello(); err != nil {
@@ -167,30 +173,34 @@ Loop:
 			break
 		}
 
-		// FIXME: This should look for a namspaces as well (strict node?)
-		switch root.Name.Local {
+		const ncNamespace = "urn:ietf:params:xml:ns:netconf:base:1.0"
+
+		switch root.Name {
+		/* Not supported yet. Will implement post beta release
 		case "notification":
 			var notif NotificationMsg
 			if err := dec.DecodeElement(&notif, root); err != nil {
 				log.Printf("failed to decode notification message: %v", err)
 			}
-			// DO something with this
-		case "rpc-reply":
+		*/
+		case xml.Name{Space: ncNamespace, Local: "rpc-reply"}:
 			var reply RPCReplyMsg
 			if err := dec.DecodeElement(&reply, root); err != nil {
+				// What should we do here?  Kill the connection?
 				log.Printf("failed to decode rpc-reply message: %v", err)
 			}
 			ok, ch := s.replyChan(reply.MessageID)
 			if !ok {
+				// XXX: what should we do here?  Kill the connection?
 				log.Printf("cannot find reply channel for message-id %d", reply.MessageID)
 				continue Loop
 			}
 			ch <- reply
 		default:
+			// XXX: should we die here?
 			log.Printf("improper xml message type %q", root.Name.Local)
 		}
 	}
-
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -249,7 +259,6 @@ func (s *Session) send(msg *RPCMsg) (chan RPCReplyMsg, error) {
 	s.reqs[msg.MessageID] = ch
 
 	return ch, nil
-
 }
 
 // Do issues a low level RPC call taking in a full RPCMsg and returning the full
@@ -309,6 +318,10 @@ func (s *Session) Close(ctx context.Context) error {
 	s.mu.Lock()
 	s.closing = true
 	s.mu.Unlock()
+
+	type closeSession struct {
+		XMLName xml.Name `xml:"close-session"`
+	}
 
 	// This may fail so save the error but still close the underlying transport.
 	rpcErr := s.Call(ctx, &closeSession{}, nil)
