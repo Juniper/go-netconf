@@ -1,0 +1,38 @@
+set dotenv-load
+
+export DOCKER_BUILDKIT := "1"
+
+@list:
+	echo "Targets here will run a set of integration tests against vendor virtual "\
+		 "images.  Most of these are not publically avaiable and must have an "\
+		 "account on the vendor website to download."
+	echo "See inttest/README.md for more information."
+	echo
+	just --list
+
+args := '\
+	--build \
+	--remove-orphans \
+	--abort-on-container-exit \
+	--exit-code-from inttest
+'
+
+all: csrx ceos confd netopeer2
+
+csrx:
+	#!/usr/bin/env bash
+	[ -z "$CSRX_IMAGE" ] && echo "CSRX_IMAGE missing skipping test" && exit 0
+	docker-compose -f docker-compose.csrx.yml up {{ args }}
+
+ceos:
+	#!/usr/bin/env bash
+	[ -z "$CEOS_IMAGE" ] && echo "CEOS_IMAGE missing skipping test" && exit 0
+	docker-compose -f docker-compose.ceos.yml up {{ args }}
+
+confd:
+	#!/usr/bin/env bash
+	[ -z "$CONFD_IMAGE" ] && echo "CONFD_IMAGE missing skipping test" && exit 0
+	docker-compose -f docker-compose.confd.yml up {{ args }}
+
+netopeer2:
+	docker-compose -f docker-compose.netopeer2.yml up {{ args }}

@@ -10,7 +10,7 @@ import (
 )
 
 // alias it to a private type so we can make it private when embedding
-type framer = transport.Framer
+type framer = transport.Framer //nolint:golint,unused
 
 // Transport implements RFC6242 for implementing NETCONF protocol over SSH.
 type Transport struct {

@@ -12,36 +12,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-
-      - uses: actions/setup-go@v3
-        with:
-          go-version: 1.19
-
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v3
+      - uses: extractions/setup-just@v1
+      - run: just lint
 
   test:
     name: Unit Tests
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go: [ '1.17', '1.18', '1.19' ]
+        go: [ '1.17', '1.18', '1.19', '1.20']
     steps:
       - uses: actions/checkout@v3
-
-      - uses: actions/setup-go@v3
-        with:
-          go-version: ${{ matrix.go }}
-
-      - run: go test ./...
+      - uses: extractions/setup-just@v1
+      - run: GO_VERSION=${{ matrix.go }} just test
 
   inttest:
     name: Integration Tests
     runs-on: ubuntu-latest
     strategy:
+      # matrix here allows us to parallelize these tests
       matrix:
         target:
-          - ceos
+          # Disabling temporarily due to some initialization issues
+          #- ceos
           - csrx
           - confd
           - netopeer2
@@ -54,12 +47,12 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - uses: extractions/setup-just@v1
+
       - name: Run containered integration tests
         env:
           # Private images for testing
           CSRX_IMAGE: ghcr.io/nemith/netconf_dut_juniper_csrx:20.3R1.8
           CEOS_IMAGE: ghcr.io/nemith/netconf_dut_arista_ceos64-lab:4.28.3M
           CONFD_IMAGE: ghcr.io/nemith/netconf_dut_tailf_confd:7.8.3
-        run: |
-         cd inttest
-         make ${{ matrix.target }}
+        run: just inttest/${{ matrix.target }}

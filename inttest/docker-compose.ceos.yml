@@ -20,16 +20,17 @@ services:
       CGO_ENABLED=0 go test -tags=inttest -v ."
   ceos:
     image: ${CEOS_IMAGE:?}
+    platform: "linux/amd64"
     environment:
-      INTFTYPE: eth
-      ETBA: 1
-      SKIP_ZEROTOUCH_BARRIER_IN_SYSDBINIT: 1
       CEOS: 1
-      EOS_PLATFORM: ceoslab
       container: docker
+      EOS_PLATFORM: ceoslab
+      SKIP_ZEROTOUCH_BARRIER_IN_SYSDBINIT: 1
+      ETBA: 1
+      INTFTYPE: eth
     privileged: true
     tty: true
     stop_signal: SIGTERM
-    command: sh -c "cp /mnt/flash/initial-config /mnt/flash/startup-config; exec /sbin/init systemd.setenv=INTFTYPE=eth systemd.setenv=ETBA=1 systemd.setenv=SKIP_ZEROTOUCH_BARRIER_IN_SYSDBINIT=1 systemd.setenv=CEOS=1 systemd.setenv=EOS_PLATFORM=ceoslab systemd.setenv=container=docker"
+    command: sh -c "cp /mnt/flash/initial-config /mnt/flash/startup-config; exec /sbin/init"
     volumes:
       - ./ceos.conf:/mnt/flash/initial-config:ro

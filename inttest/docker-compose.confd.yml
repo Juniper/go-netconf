@@ -20,6 +20,7 @@ services:
       CGO_ENABLED=0 go test -tags=inttest -v ."
   confd:
     image: ${CONFD_IMAGE:?}
+    platform: "linux/amd64"
     privileged: true
     tty: true
     stop_signal: SIGKILL

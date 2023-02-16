@@ -9,7 +9,7 @@ import (
 )
 
 // alias it to a private type so we can make it private when embedding
-type framer = transport.Framer
+type framer = transport.Framer //nolint:golint,unused
 
 // Transport implements RFC7589 for implementing NETCONF over TLS.
 type Transport struct {

@@ -1,12 +1,17 @@
-FROM docker.io/library/golang:1.19-alpine
+FROM docker.io/library/golang:1.20-alpine
 
 # required for wait-for-hello.sh script
 RUN apk add \
+    make \
+    build-base \
     openssh \
     sshpass \
-    perl-xml-xpath 
+    perl-xml-xpath
 
 COPY . /src
 
 WORKDIR /src/inttest
-CMD CGO_ENABLED=0 go test -v .
+# prebuild
+RUN go test -tags=inttest -c .
+
+CMD go test -tags=inttest -v -race .
