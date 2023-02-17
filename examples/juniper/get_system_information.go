@@ -15,7 +15,7 @@ import (
 	"os"
 	"syscall"
 
-	"github.com/inspiregates/go-netconf/netconf"
+	"github.com/Juniper/go-netconf/netconf"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/terminal"
 )

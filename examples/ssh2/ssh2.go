@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/inspiregates/go-netconf/netconf"
+	"github.com/Juniper/go-netconf/netconf"
 	"golang.org/x/crypto/ssh"
 )
 
