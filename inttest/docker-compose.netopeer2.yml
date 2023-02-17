@@ -3,7 +3,8 @@ services:
   inttest:
     build:
       context: ..
-      dockerfile: Dockerfile.inttest
+      dockerfile: Dockerfile
+      target: inttest
     environment:
       NETCONF_DUT_SSHHOST: netopeer2
       NETCONF_DUT_SSHPORT: 830
@@ -17,7 +18,7 @@ services:
       -s $$NETCONF_DUT_SSHPASS
       -p $$NETCONF_DUT_SSHPORT
       $$NETCONF_DUT_SSHUSER@$$NETCONF_DUT_SSHHOST &&
-      CGO_ENABLED=0 go test -tags=inttest -v ."
+      ./inttest.test -test.v"
   netopeer2:
     build:
       context: .
