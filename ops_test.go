@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strconv"
 	"testing"
+	"time"
 )
 
 func TestUnmarshalOk(t *testing.T) {
@@ -22,8 +23,8 @@ func TestUnmarshalOk(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			var v struct {
-				XMLName xml.Name `xml:"foo"`
-				Ok      OK       `xml:"ok"`
+				XMLName xml.Name   `xml:"foo"`
+				Ok      ExtantBool `xml:"ok"`
 			}
 
 			if err := xml.Unmarshal([]byte(tc.input), &v); err != nil {
@@ -471,6 +472,123 @@ func TestKillSession(t *testing.T) {
 			ts.queueRespString(`<rpc-reply xmlns="urn:ietf:params:xml:ns:netconf:base:1.0" message-id="1"><ok/></rpc-reply>`)
 
 			err := sess.KillSession(context.Background(), tc.id)
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+
+			sentMsg, err := ts.popReq()
+			if err != nil {
+				t.Errorf("failed to read message sent to sever: %v", err)
+			}
+
+			for _, match := range tc.matches {
+				if !match.Match(sentMsg) {
+					t.Errorf("sent message didn't match `%s`", match.String())
+				}
+			}
+		})
+	}
+}
+
+func TestCommit(t *testing.T) {
+	tt := []struct {
+		name    string
+		options []CommitOption
+		matches []*regexp.Regexp
+	}{
+		{
+			name: "noOptions",
+			matches: []*regexp.Regexp{
+				regexp.MustCompile(`<commit></commit>`),
+			},
+		},
+		{
+			name:    "confirmed",
+			options: []CommitOption{WithConfirmed()},
+			matches: []*regexp.Regexp{
+				regexp.MustCompile(`<commit><confirmed></confirmed></commit>`),
+			},
+		},
+		{
+			name:    "confirmed",
+			options: []CommitOption{WithConfirmedTimeout(1 * time.Minute)},
+			matches: []*regexp.Regexp{
+				regexp.MustCompile(`<commit><confirmed></confirmed><confirm-timeout>60</confirm-timeout></commit>`),
+			},
+		},
+		{
+			name:    "persist",
+			options: []CommitOption{WithPersist("myid")},
+			matches: []*regexp.Regexp{
+				regexp.MustCompile(`<commit><confirmed></confirmed><persist>myid</persist></commit>`),
+			},
+		},
+		{
+			name:    "persist_id",
+			options: []CommitOption{WithPersistID("myid")},
+			matches: []*regexp.Regexp{
+				regexp.MustCompile(`<commit><persist-id>myid</persist-id></commit>`),
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			ts := newTestServer(t)
+			sess := newSession(ts.transport())
+			go sess.recv()
+
+			ts.queueRespString(`<rpc-reply xmlns="urn:ietf:params:xml:ns:netconf:base:1.0" message-id="1"><ok/></rpc-reply>`)
+
+			err := sess.Commit(context.Background(), tc.options...)
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+
+			sentMsg, err := ts.popReq()
+			if err != nil {
+				t.Errorf("failed to read message sent to sever: %v", err)
+			}
+
+			for _, match := range tc.matches {
+				if !match.Match(sentMsg) {
+					t.Errorf("sent message didn't match `%s`", match.String())
+				}
+			}
+		})
+	}
+}
+
+func TestCancelCommit(t *testing.T) {
+	tt := []struct {
+		name    string
+		options []CancelCommitOption
+		matches []*regexp.Regexp
+	}{
+		{
+			name: "noOptions",
+			matches: []*regexp.Regexp{
+				regexp.MustCompile(`<cancel-commit></cancel-commit>`),
+			},
+		},
+		{
+			name:    "persist_id",
+			options: []CancelCommitOption{WithPersistID("myid")},
+			matches: []*regexp.Regexp{
+				regexp.MustCompile(`<cancel-commit><persist-id>myid</persist-id></cancel-commit>`),
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			ts := newTestServer(t)
+			sess := newSession(ts.transport())
+			go sess.recv()
+
+			ts.queueRespString(`<rpc-reply xmlns="urn:ietf:params:xml:ns:netconf:base:1.0" message-id="1"><ok/></rpc-reply>`)
+
+			err := sess.CancelCommit(context.Background(), tc.options...)
 			if err != nil {
 				t.Errorf("unexpected error: %v", err)
 			}
