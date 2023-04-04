@@ -26,7 +26,7 @@ type RPCReplyMsg struct {
 
 	// Ok is part of RFC6241 and is present if no data is returned from an
 	// RPC call and there were no errors.  This IS NOT set to true if data is
-	// also returned.  To check if a call is ok then look ath the RPCErrors
+	// also returned.  To check if a call is ok then look at the Errors field
 
 	Errors []RPCError `xml:"rpc-error,omitempty"`
 	Data   []byte     `xml:",innerxml"`

@@ -12,7 +12,7 @@ import (
 )
 
 // ErrMalformedChunk represents a message that invalid as defined in the chunk
-// framking in RFC6242
+// framing in RFC6242
 var ErrMalformedChunk = errors.New("netconf: invalid chunk")
 
 type frameReader interface {
@@ -88,7 +88,7 @@ func NewFramer(r io.Reader, w io.Writer) *Framer {
 //
 // This needs to be called before `MsgReader` or `MsgWriter`.
 func (f *Framer) DebugCapture(in io.Writer, out io.Writer) {
-	// XXX: should there be a sentinal flag to indicate write/read has been done already?
+	// XXX: should there be a sentinel flag to indicate write/read has been done already?
 	if f.curReader != nil ||
 		f.curWriter != nil ||
 		f.bw.Buffered() > 0 ||
@@ -111,7 +111,7 @@ func (f *Framer) DebugCapture(in io.Writer, out io.Writer) {
 // Chunked framing.  This is usually called after netconf exchanged the hello
 // messages.
 func (t *Framer) Upgrade() {
-	// XXX: do we need to protect against race conditions (atomic/mutux?)
+	// XXX: do we need to protect against race conditions (atomic/mutex?)
 	t.upgraded = true
 }
 
@@ -119,7 +119,7 @@ func (t *Framer) Upgrade() {
 // message.
 //
 // Only one reader can be used at a time.  When this is called with an existing
-// reader then the underlying reader is avanced to the start of the next message
+// reader then the underlying reader is advanced to the start of the next message
 // and invalidates the old reader before returning a new one.
 func (t *Framer) MsgReader() (io.Reader, error) {
 	if t.curReader != nil {
@@ -198,7 +198,7 @@ func (r *chunkReader) readHeader() error {
 		return err
 	}
 
-	// make sure the preable of `\n#` which is used for both the start of a
+	// make sure the preamble of `\n#` which is used for both the start of a
 	// chuck and the end-of-chunk marker is valid.
 	if peeked[0] != '\n' || peeked[1] != '#' {
 		return ErrMalformedChunk

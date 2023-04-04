@@ -63,12 +63,12 @@ func newSession(transport transport.Transport, opts ...SessionOption) *Session {
 }
 
 // Open will create a new Session with th=e given transport and open it with the
-// nessesary hello messages.
+// necessary hello messages.
 func Open(transport transport.Transport, opts ...SessionOption) (*Session, error) {
 	s := newSession(transport, opts...)
 
 	// this needs a timeout of some sort.
-	if err := s.hello(); err != nil {
+	if err := s.handshake(); err != nil {
 		s.tr.Close()
 		return nil, err
 	}
@@ -77,8 +77,8 @@ func Open(transport transport.Transport, opts ...SessionOption) (*Session, error
 	return s, nil
 }
 
-// hello exchanges hello messages and reports if there are any errors.
-func (s *Session) hello() error {
+// handshake exchanges handshake messages and reports if there are any errors.
+func (s *Session) handshake() error {
 	clientMsg := HelloMsg{
 		Capabilities: s.clientCaps.All(),
 	}
@@ -125,12 +125,12 @@ func (s *Session) SessionID() uint64 {
 	return s.sessionID
 }
 
-// ClientCapabilties will return the capabilities initialized with the session.
+// ClientCapabilities will return the capabilities initialized with the session.
 func (s *Session) ClientCapabilities() []string {
 	return s.clientCaps.All()
 }
 
-// ServcerCapabilties will return the capabilities returned by the server in
+// ServerCapabilities will return the capabilities returned by the server in
 // it's hello message.
 func (s *Session) ServerCapabilities() []string {
 	return s.serverCaps.All()
@@ -289,8 +289,8 @@ func (s *Session) Do(ctx context.Context, msg *RPCMsg) (*RPCReplyMsg, error) {
 	}
 }
 
-// Call issues a rpc call for the given NETCONF operation and unmashaling the
-// respose into `resp`.
+// Call issues a rpc call for the given NETCONF operation and unmarshaling the
+// response into `resp`.
 func (s *Session) Call(ctx context.Context, op interface{}, resp interface{}) error {
 	msg := &RPCMsg{
 		Operation: op,
