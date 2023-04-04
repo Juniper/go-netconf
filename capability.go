@@ -5,7 +5,7 @@ const (
 	stdCapPrefix = "urn:ietf:params:netconf:capability"
 )
 
-// DefaultCapabilties are the capabilties sent by the client during the hello
+// DefaultCapabilities are the capabilities sent by the client during the hello
 // exchange by the server.
 var DefaultCapabilities = []string{
 	"urn:ietf:params:netconf:base:1.0",
@@ -41,7 +41,7 @@ func ExpandCapability(s string) string {
 	return stdCapPrefix + s
 }
 
-// XXX: may want to expose this type publically in the future when the api has
+// XXX: may want to expose this type publicly in the future when the api has
 // stabilized?
 type capabilitySet struct {
 	caps map[string]struct{}

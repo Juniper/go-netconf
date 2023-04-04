@@ -94,7 +94,7 @@ const (
 	Running Datastore = "running"
 
 	// Candidate configuration configuration datastore.  Supported with the
-	// `:canidate` capability defined in RFC6241 section 8.3
+	// `:candidate` capability defined in RFC6241 section 8.3
 	Candidate Datastore = "candidate"
 
 	// Startup configuration configuration datastore.  Supported with the
@@ -113,7 +113,7 @@ type getConfigResp struct {
 	Config  []byte   `xml:",innerxml"`
 }
 
-// GetConfig implments the <get-config> rpc operation defined in [RFC6241 7.1].
+// GetConfig implements the <get-config> rpc operation defined in [RFC6241 7.1].
 // `source` is the datastore to query.
 //
 // [RFC6241 7.1]: https://www.rfc-editor.org/rfc/rfc6241.html#section-7.1
@@ -146,31 +146,31 @@ const (
 
 	// ReplaceConfig defines that the incoming config change should replace the
 	// existing config at the level which it is specified.  This can be
-	// specified on indivual config elements or set as the default strategy set
+	// specified on individual config elements or set as the default strategy set
 	// with [WithDefaultMergeStrategy] option.
 	ReplaceConfig MergeStrategy = "replace"
 
-	// NoMergeStategy is only used as a default strategy defined in
-	// [WithDefaultMergeStragegy].  Elements must specific one of the other
-	// stragegies with the `operation` Attribute on elements in the `<config>`
+	// NoMergeStrategy is only used as a default strategy defined in
+	// [WithDefaultMergeStrategy].  Elements must specific one of the other
+	// strategies with the `operation` Attribute on elements in the `<config>`
 	// subtree.  Elements without the `operation` attribute are ignored.
-	NoMergeStragegy MergeStrategy = "none"
+	NoMergeStrategy MergeStrategy = "none"
 
 	// CreateConfig allows a subtree element to be created only if it doesn't
 	// already exist.
 	// This strategy is only used as the `operation` attribute of
-	// a `<config>` element and cannot be used as the defaul strategy.
+	// a `<config>` element and cannot be used as the default strategy.
 	CreateConfig MergeStrategy = "create"
 
 	// DeleteConfig will completely delete subtree from the config only if it
 	// already exists.  This strategy is only used as the `operation` attribute
-	// of a `<config>` element and cannot be used as the defaul strategy.
+	// of a `<config>` element and cannot be used as the default strategy.
 	DeleteConfig MergeStrategy = "delete"
 
-	// Removeonfig will remove subtree from the config.  If the subtree doesn't
-	// exist in the datastore then it is siliently skipped.  This strategy is
+	// RemoveConfig will remove subtree from the config.  If the subtree doesn't
+	// exist in the datastore then it is silently skipped.  This strategy is
 	// only used as the `operation` attribute of a `<config>` element and cannot
-	// be used as the defaul strategy.
+	// be used as the default strategy.
 	RemoveConfig MergeStrategy = "remove"
 )
 
@@ -188,7 +188,7 @@ const (
 	// SetOnly will not do any testing before applying it.
 	SetOnly TestStrategy = "set"
 
-	// Test only will validation the incoming configiration and return the
+	// Test only will validation the incoming configuration and return the
 	// results without modifying the underlying store.
 	TestOnly TestStrategy = "test-only"
 )
@@ -203,7 +203,7 @@ const (
 	// StopOnError will about the `<edit-config>` operation on the first error.
 	StopOnError ErrorStrategy = "stop-on-error"
 
-	// ContinueOnError will continue to parse the configiration data even if an
+	// ContinueOnError will continue to parse the configuration data even if an
 	// error is encountered.  Errors are still recorded and reported in the
 	// reply.
 	ContinueOnError ErrorStrategy = "continue-on-error"
@@ -225,14 +225,14 @@ func (o testStrategy) apply(req *editConfigReq)         { req.TestStrategy = Tes
 func (o errorStrategy) apply(req *editConfigReq)        { req.ErrorStrategy = ErrorStrategy(o) }
 
 // WithDefaultMergeStrategy sets the default config merging strategy for the
-// <edit-config> operation.  Only [Merge], [Replace], and [None] are suppored
+// <edit-config> operation.  Only [Merge], [Replace], and [None] are supported
 // (the rest of the strategies are for defining as attributed in individual
 // elements inside the `<config>` subtree).
 func WithDefaultMergeStrategy(op MergeStrategy) EditConfigOption { return defaultMergeStrategy(op) }
 
 // WithTestStrategy sets the `test-option` in the `<edit-config>“ operation.
 // This defines what testing should be done the supplied configuration.  See the
-// documenation on [TestStrategy] for details on each strategy.
+// documentation on [TestStrategy] for details on each strategy.
 func WithTestStrategy(op TestStrategy) EditConfigOption { return testStrategy(op) }
 
 // WithErrorStrategy sets the `error-option` in the `<edit-config>` operation.
@@ -418,10 +418,10 @@ func (o persistID) apply(req *commitReq) { req.PersistID = string(o) }
 
 // RollbackOnError will restore the configuration back to before the
 // `<edit-config>` operation took place.  This requires the device to
-// support the `:rollback-on-error` capabilitiy.
+// support the `:rollback-on-error` capability.
 
-// WithConfirmed will mark the commits as requiring confimation or will rollback
-// after the default timeout on the device (detault should be 600s).  The commit
+// WithConfirmed will mark the commits as requiring confirmation or will rollback
+// after the default timeout on the device (default should be 600s).  The commit
 // can be confirmed with another `<commit>` call without the confirmed option,
 // extended by calling with `Commit` With `WithConfirmed` or
 // `WithConfirmedTimeout` or canceling the commit with a `CommitCancel` call.

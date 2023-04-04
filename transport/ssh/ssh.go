@@ -25,7 +25,7 @@ type Transport struct {
 }
 
 // Dial will connect to a ssh server and issues a transport, it's used as a
-// convience function as essnetial is the same as
+// convenience function as essentially is the same as
 //
 //		c, err := ssh.Dial(network, addr, config)
 //	 	if err != nil { /* ... handle error ... */ }

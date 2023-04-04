@@ -145,7 +145,7 @@ func TestHello(t *testing.T) {
 
 			ts.queueRespString(tc.serverHello)
 
-			err := sess.hello()
+			err := sess.handshake()
 			if err != nil && !tc.shouldError {
 				t.Errorf("unexpected error: %v", err)
 			}
