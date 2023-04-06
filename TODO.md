@@ -4,7 +4,7 @@
 
 - [X] Upgrade transport based on versions (1.0->1.1 upgrade to chunked)
 - [X] Cleanup request/response API (Session.Do, session.Call?)
-- [ ] Convert rpc errors to go errors
+- [X] Convert rpc errors to go errors
 - [X] shutdown / close
 - [ ] all RFC6241 operations (methods + op structs?)
 - [ ] unit tests (>80% coverage?)

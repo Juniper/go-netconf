@@ -302,14 +302,15 @@ func (s *Session) Call(ctx context.Context, op interface{}, resp interface{}) er
 	}
 
 	if resp != nil {
-		if err := xml.Unmarshal(reply.Data, resp); err != nil {
-			return fmt.Errorf("failed to decode response: %w", err)
-		}
+		err = xml.Unmarshal(reply.Data, resp)
 	}
 
-	// XXX: Need to handle RPC errors here.
+	// if we have RPC errors return them
+	if reply.Errors != nil {
+		err = reply.Errors
+	}
 
-	return nil
+	return err
 }
 
 // Close will gracefully close the sessions first by sending a `close-session`

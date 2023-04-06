@@ -2,6 +2,8 @@ package netconf
 
 import (
 	"encoding/xml"
+	"fmt"
+	"strings"
 	"time"
 )
 
@@ -28,8 +30,8 @@ type RPCReplyMsg struct {
 	// RPC call and there were no errors.  This IS NOT set to true if data is
 	// also returned.  To check if a call is ok then look at the Errors field
 
-	Errors []RPCError `xml:"rpc-error,omitempty"`
-	Data   []byte     `xml:",innerxml"`
+	Errors RPCErrors `xml:"rpc-error,omitempty"`
+	Data   []byte    `xml:",innerxml"`
 }
 
 type NotificationMsg struct {
@@ -67,5 +69,26 @@ type RPCError struct {
 }
 
 func (e RPCError) Error() string {
-	return e.Message
+	return fmt.Sprintf("rpc error: %s", e.Message)
+}
+
+type RPCErrors []RPCError
+
+func (errs RPCErrors) Error() string {
+	var sb strings.Builder
+	for i, err := range errs {
+		if i > 0 {
+			sb.WriteRune('\n')
+		}
+		sb.WriteString(err.Error())
+	}
+	return sb.String()
+}
+
+func (errs RPCErrors) Unwrap() []error {
+	boxed := make([]error, len(errs))
+	for i, err := range errs {
+		boxed[i] = err
+	}
+	return boxed
 }
