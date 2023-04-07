@@ -11,6 +11,7 @@ import (
 
 	"github.com/nemith/netconf"
 	ncssh "github.com/nemith/netconf/transport/ssh"
+	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -104,4 +105,15 @@ func TestSSHGetConfig(t *testing.T) {
 	if err := session.Close(ctx); err != nil {
 		t.Fatalf("failed to close session: %v", err)
 	}
+}
+
+func TestBadGetConfig(t *testing.T) {
+	session := setupSSH(t)
+
+	ctx := context.Background()
+	cfg, err := session.GetConfig(ctx, "non-exist")
+	assert.Nil(t, cfg)
+	var rpcErrors netconf.RPCErrors
+	assert.ErrorAs(t, err, &rpcErrors)
+	assert.Len(t, rpcErrors, 1)
 }
