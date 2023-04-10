@@ -1,3 +1,10 @@
 {
-  "cSpell.words": ["netconf"]
+  "cSpell.words": [
+    "byteslice",
+    "innerxml",
+    "inttest",
+    "Junos",
+    "nemith",
+    "netconf"
+  ]
 }
