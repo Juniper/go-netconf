@@ -127,9 +127,8 @@ func TestBadGetConfig(t *testing.T) {
 	ctx := context.Background()
 	cfg, err := session.GetConfig(ctx, "non-exist")
 	assert.Nil(t, cfg)
-	var rpcErrors netconf.RPCErrors
-	assert.ErrorAs(t, err, &rpcErrors)
-	assert.Len(t, rpcErrors, 1)
+	var rpcErr netconf.RPCError
+	assert.ErrorAs(t, err, &rpcErr)
 }
 
 func TestJunosCommand(t *testing.T) {

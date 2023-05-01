@@ -301,16 +301,21 @@ func (s *Session) Call(ctx context.Context, op interface{}, resp interface{}) er
 		return err
 	}
 
+	// return rpc errors if we have them
+	switch {
+	case len(reply.Errors) == 1:
+		return reply.Errors[0]
+	case len(reply.Errors) > 1:
+		return reply.Errors
+	}
+
+	// unmarshal the body
 	if resp != nil {
-		err = xml.Unmarshal(reply.Data, resp)
+		if err = xml.Unmarshal(reply.Body, resp); err != nil {
+			return err
+		}
 	}
-
-	// if we have RPC errors return them
-	if reply.Errors != nil {
-		err = reply.Errors
-	}
-
-	return err
+	return nil
 }
 
 // Close will gracefully close the sessions first by sending a `close-session`

@@ -7,6 +7,34 @@ import (
 	"time"
 )
 
+// RawXML captures the raw xml for the given element.  Used to process certain
+// elements later.
+type RawXML []byte
+
+func (x *RawXML) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	var inner struct {
+		Data []byte `xml:",innerxml"`
+	}
+
+	if err := d.DecodeElement(&inner, &start); err != nil {
+		return err
+	}
+
+	*x = inner.Data
+	return nil
+}
+
+// MarshalXML implements xml.Marshaller.  Raw XML is passed verbatim, errors and
+// all.
+func (x *RawXML) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+	inner := struct {
+		Data []byte `xml:",innerxml"`
+	}{
+		Data: []byte(*x),
+	}
+	return e.EncodeElement(&inner, start)
+}
+
 // helloMsg maps the xml value of the <hello> message in RFC6241
 type HelloMsg struct {
 	XMLName      xml.Name `xml:"urn:ietf:params:xml:ns:netconf:base:1.0 hello"`
@@ -36,15 +64,10 @@ func (msg *RPCMsg) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 
 // RPCReplyMsg maps the xml value of <rpc-reply> in RFC6241
 type RPCReplyMsg struct {
-	XMLName   xml.Name `xml:"urn:ietf:params:xml:ns:netconf:base:1.0 rpc-reply"`
-	MessageID uint64   `xml:"message-id,attr"`
-
-	// Ok is part of RFC6241 and is present if no data is returned from an
-	// RPC call and there were no errors.  This IS NOT set to true if data is
-	// also returned.  To check if a call is ok then look at the Errors field
-
-	Errors RPCErrors `xml:"rpc-error,omitempty"`
-	Data   []byte    `xml:",innerxml"`
+	XMLName   xml.Name  `xml:"urn:ietf:params:xml:ns:netconf:base:1.0 rpc-reply"`
+	MessageID uint64    `xml:"message-id,attr"`
+	Errors    RPCErrors `xml:"rpc-error,omitempty"`
+	Body      []byte    `xml:",innerxml"`
 }
 
 type NotificationMsg struct {
@@ -56,29 +79,52 @@ type NotificationMsg struct {
 type ErrSeverity string
 
 const (
-	SevError   ErrSeverity = "error"
-	SevWarning ErrSeverity = "warning"
+	ErrSevError   ErrSeverity = "error"
+	ErrSevWarning ErrSeverity = "warning"
 )
 
 type ErrType string
 
 const (
-	ErrTypeTrans ErrType = "transport"
-	ErrTypeRPC   ErrType = "rpc"
-	ErrTypeProto ErrType = "protocol"
-	ErrTypeApp   ErrType = "app"
+	ErrTypeTransport ErrType = "transport"
+	ErrTypeRPC       ErrType = "rpc"
+	ErrTypeProtocol  ErrType = "protocol"
+	ErrTypeApp       ErrType = "app"
 )
 
-const ErrTypeTransport ErrType = "transport"
+type ErrTag string
+
+const (
+	ErrInUse                 ErrTag = "in-use"
+	ErrInvalidValue          ErrTag = "invalid-value"
+	ErrTooBig                ErrTag = "too-big"
+	ErrMissingAttribute      ErrTag = "missing-attribute"
+	ErrBadAttribute          ErrTag = "bad-attribute"
+	ErrUnknownAttribute      ErrTag = "unknown-attribute"
+	ErrMissingElement        ErrTag = "missing-element"
+	ErrBadElement            ErrTag = "bad-element"
+	ErrUnknownElement        ErrTag = "unknown-element"
+	ErrUnknownNamespace      ErrTag = "unknown-namespace"
+	ErrAccesDenied           ErrTag = "access-denied"
+	ErrLockDenied            ErrTag = "lock-denied"
+	ErrResourceDenied        ErrTag = "resource-denied"
+	ErrRollbackFailed        ErrTag = "rollback-failed"
+	ErrDataExists            ErrTag = "data-exists"
+	ErrDataMissing           ErrTag = "data-missing"
+	ErrOperationNotSupported ErrTag = "operation-not-supported"
+	ErrOperationFailed       ErrTag = "operation-failed"
+	ErrPartialOperation      ErrTag = "partial-operation"
+	ErrMalformedMessage      ErrTag = "malformed-message"
+)
 
 type RPCError struct {
-	Type     string      `xml:"error-type"`
-	Tag      string      `xml:"error-tag"`
+	Type     ErrType     `xml:"error-type"`
+	Tag      ErrTag      `xml:"error-tag"`
 	Severity ErrSeverity `xml:"error-severity"`
 	AppTag   string      `xml:"error-app-tag,omitempty"`
 	Path     string      `xml:"error-path,omitempty"`
 	Message  string      `xml:"error-message,omitempty"`
-	Info     interface{} `xml:"error-info,omitempty"`
+	Info     RawXML      `xml:"error-info,omitempty"`
 }
 
 func (e RPCError) Error() string {

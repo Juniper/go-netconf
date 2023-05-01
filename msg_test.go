@@ -7,7 +7,60 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var ()
+var rawXMLTests = []struct {
+	name        string
+	element     RawXML
+	xml         []byte
+	noUnmarshal bool
+}{
+	{
+		name:    "empty",
+		element: RawXML(""),
+		xml:     []byte("<RawXML></RawXML>"),
+	},
+	{
+		name:    "nil",
+		element: nil,
+		xml:     []byte("<RawXML></RawXML>"),
+		// we will never unmarshal back into a nil (see "empty" testcase)
+		noUnmarshal: true,
+	},
+	{
+		name:    "textElement",
+		element: RawXML("A man a plan a canal panama"),
+		xml:     []byte("<RawXML>A man a plan a canal panama</RawXML>"),
+	},
+	{
+		name:    "xml",
+		element: RawXML("<foo><bar>hamburger</bar></foo>"),
+		xml:     []byte("<RawXML><foo><bar>hamburger</bar></foo></RawXML>"),
+	},
+}
+
+func TestRawXMLUnmarshal(t *testing.T) {
+	for _, tc := range rawXMLTests {
+		if tc.noUnmarshal {
+			continue
+		}
+
+		t.Run(tc.name, func(t *testing.T) {
+			var got RawXML
+			err := xml.Unmarshal(tc.xml, &got)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.element, got)
+		})
+	}
+}
+
+func TestRawXMLMarshal(t *testing.T) {
+	for _, tc := range rawXMLTests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := xml.Marshal(&tc.element)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.xml, got)
+		})
+	}
+}
 
 var helloMsgTestTable = []struct {
 	name string
@@ -156,4 +209,70 @@ func TestMarshalRPCMsg(t *testing.T) {
 			assert.Equal(t, out, tc.want)
 		})
 	}
+}
+
+var replyJunosGetConfigError = []byte(`
+<rpc-reply xmlns:junos="http://xml.juniper.net/junos/20.3R0/junos" xmlns="urn:ietf:params:xml:ns:netconf:base:1.0" message-id="1">
+<rpc-error>
+<error-type>protocol</error-type>
+<error-tag>operation-failed</error-tag>
+<error-severity>error</error-severity>
+<error-message>syntax error, expecting &lt;candidate/&gt; or &lt;running/&gt;</error-message>
+<error-info>
+<bad-element>non-exist</bad-element>
+</error-info>
+</rpc-error>
+</rpc-reply>
+`)
+
+func TestUnmarshalRPCReply(t *testing.T) {
+	tt := []struct {
+		name  string
+		reply []byte
+		want  RPCReplyMsg
+	}{
+		{
+			name:  "error",
+			reply: replyJunosGetConfigError,
+			want: RPCReplyMsg{
+				XMLName: xml.Name{
+					Space: "urn:ietf:params:xml:ns:netconf:base:1.0",
+					Local: "rpc-reply",
+				},
+				MessageID: 1,
+				Errors: []RPCError{
+					{
+						Type:     ErrTypeProtocol,
+						Tag:      ErrOperationFailed,
+						Severity: ErrSevError,
+						Message:  "syntax error, expecting <candidate/> or <running/>",
+						Info: []byte(`
+<bad-element>non-exist</bad-element>
+`),
+					},
+				},
+				Body: []byte(`
+<rpc-error>
+<error-type>protocol</error-type>
+<error-tag>operation-failed</error-tag>
+<error-severity>error</error-severity>
+<error-message>syntax error, expecting &lt;candidate/&gt; or &lt;running/&gt;</error-message>
+<error-info>
+<bad-element>non-exist</bad-element>
+</error-info>
+</rpc-error>
+`),
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			var got RPCReplyMsg
+			err := xml.Unmarshal(tc.reply, &got)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.want, got)
+		})
+	}
+
 }
