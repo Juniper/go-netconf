@@ -3,6 +3,7 @@ package ssh
 import (
 	"context"
 	"fmt"
+	"io"
 	"net"
 
 	"github.com/nemith/netconf/transport"
@@ -14,8 +15,9 @@ type framer = transport.Framer //nolint:golint,unused
 
 // Transport implements RFC6242 for implementing NETCONF protocol over SSH.
 type Transport struct {
-	c    *ssh.Client
-	sess *ssh.Session
+	c     *ssh.Client
+	sess  *ssh.Session
+	stdin io.WriteCloser
 
 	// indicate that we "own" the client and should close it with the session
 	// when the transport is closed.
@@ -79,6 +81,7 @@ func newTransport(client *ssh.Client, owned bool) (*Transport, error) {
 		c:           client,
 		ownedClient: owned,
 		sess:        sess,
+		stdin:       w,
 
 		framer: transport.NewFramer(r, w),
 	}, nil
@@ -88,13 +91,24 @@ func newTransport(client *ssh.Client, owned bool) (*Transport, error) {
 // with Dial then then underlying ssh.Client is closed as well.  If not only
 // the sessions is closed.
 func (t *Transport) Close() error {
+	// TODO: in go 1.20 this could easily be an errors.Join() but for now we
+	// will save previous errors but try to close everything returning just the
+	// "lowest" abstraction layer error
+	var retErr error
+
+	if err := t.stdin.Close(); err != nil {
+		retErr = fmt.Errorf("failed to close ssh stdin: %w", err)
+	}
+
 	if err := t.sess.Close(); err != nil {
-		return err
+		retErr = fmt.Errorf("failed to close ssh channel: %w", err)
 	}
 
 	if t.ownedClient {
-		return t.c.Close()
+		if err := t.c.Close(); err != nil {
+			return fmt.Errorf("failed to close ssh connnection: %w", t.c.Close())
+		}
 	}
 
-	return nil
+	return retErr
 }

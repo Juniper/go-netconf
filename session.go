@@ -107,8 +107,8 @@ func (s *Session) handshake() error {
 	if len(serverMsg.Capabilities) == 0 {
 		return fmt.Errorf("server did not return any capabilities")
 	}
-	s.serverCaps = newCapabilitySet(serverMsg.Capabilities...)
 
+	s.serverCaps = newCapabilitySet(serverMsg.Capabilities...)
 	s.sessionID = serverMsg.SessionID
 
 	// upgrade the transport if we are on a larger version and the transport

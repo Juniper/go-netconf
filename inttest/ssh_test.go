@@ -115,7 +115,6 @@ func TestSSHGetConfig(t *testing.T) {
 	}
 	t.Logf("configuration: %s", config)
 
-	// XXX: GetConfig
 	if err := session.Close(ctx); err != nil {
 		t.Fatalf("failed to close session: %v", err)
 	}
