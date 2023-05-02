@@ -16,9 +16,8 @@ import (
 var ErrMalformedChunk = errors.New("netconf: invalid chunk")
 
 type frameReader interface {
-	io.Reader
+	io.ReadCloser
 	io.ByteReader
-	advance() error
 }
 
 type frameWriter interface {
@@ -121,13 +120,7 @@ func (t *Framer) Upgrade() {
 // Only one reader can be used at a time.  When this is called with an existing
 // reader then the underlying reader is advanced to the start of the next message
 // and invalidates the old reader before returning a new one.
-func (t *Framer) MsgReader() (io.Reader, error) {
-	if t.curReader != nil {
-		if err := t.curReader.advance(); err != nil {
-			return nil, err
-		}
-	}
-
+func (t *Framer) MsgReader() (io.ReadCloser, error) {
 	if t.upgraded {
 		t.curReader = &chunkReader{r: t.br}
 	} else {
@@ -159,28 +152,6 @@ var endOfChunks = []byte("\n##\n")
 type chunkReader struct {
 	r         *bufio.Reader
 	chunkLeft int
-}
-
-func (r *chunkReader) advance() error {
-	defer func() { r.r = nil }()
-
-	for {
-		if r.chunkLeft <= 0 {
-			err := r.readHeader()
-			switch err {
-			case nil:
-				break
-			case io.EOF:
-				return nil
-			default:
-				return err
-			}
-		}
-
-		if _, err := r.r.Discard(r.chunkLeft); err != nil {
-			return err
-		}
-	}
 }
 
 func (r *chunkReader) readHeader() error {
@@ -276,7 +247,31 @@ func (r *chunkReader) ReadByte() (byte, error) {
 	}
 	r.chunkLeft--
 	return b, nil
+}
 
+// Close will read the rest of the frame and consume it including
+// the end-of-frame markers if we haven't already done so.
+func (r *chunkReader) Close() error {
+	// poison the reader so that it can no longer be used
+	defer func() { r.r = nil }()
+
+	for {
+		if r.chunkLeft <= 0 {
+			err := r.readHeader()
+			switch err {
+			case nil:
+				break
+			case io.EOF:
+				return nil
+			default:
+				return err
+			}
+		}
+
+		if _, err := r.r.Discard(r.chunkLeft); err != nil {
+			return err
+		}
+	}
 }
 
 type chunkWriter struct {
@@ -310,20 +305,6 @@ var endOfMsg = []byte("]]>]]>")
 
 type eomReader struct {
 	r *bufio.Reader
-}
-
-func (r *eomReader) advance() error {
-	// poison the reader so that it can no longer be used
-	defer func() { r.r = nil }()
-
-	var err error
-	for err == nil {
-		_, err = r.ReadByte()
-		if err == io.EOF {
-			return nil
-		}
-	}
-	return err
 }
 
 func (r *eomReader) Read(p []byte) (int, error) {
@@ -374,6 +355,22 @@ func (r *eomReader) ReadByte() (byte, error) {
 	}
 
 	return b, nil
+}
+
+// Close will read the rest of the frame and consume it including
+// the end-of-frame marker.
+func (r *eomReader) Close() error {
+	// poison the reader so that it can no longer be used
+	defer func() { r.r = nil }()
+
+	var err error
+	for err == nil {
+		_, err = r.ReadByte()
+		if err == io.EOF {
+			return nil
+		}
+	}
+	return err
 }
 
 type eomWriter struct {

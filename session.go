@@ -3,10 +3,12 @@ package netconf
 import (
 	"context"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"sync"
+	"syscall"
 
 	"github.com/nemith/netconf/transport"
 )
@@ -90,6 +92,8 @@ func (s *Session) handshake() error {
 	if err != nil {
 		return err
 	}
+	// TODO: capture this error some how (ah defer and errors)
+	defer r.Close()
 
 	var serverMsg HelloMsg
 	if err := xml.NewDecoder(r).Decode(&serverMsg); err != nil {
@@ -151,54 +155,55 @@ func startElement(d *xml.Decoder) (*xml.StartElement, error) {
 	}
 }
 
+func (s *Session) recvMsg() error {
+	r, err := s.tr.MsgReader()
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+	dec := xml.NewDecoder(r)
+
+	root, err := startElement(dec)
+	if err != nil {
+		return err
+	}
+
+	const ncNamespace = "urn:ietf:params:xml:ns:netconf:base:1.0"
+
+	switch root.Name {
+	/* Not supported yet. Will implement post beta release
+	case "notification":
+		var notif NotificationMsg
+		if err := dec.DecodeElement(&notif, root); err != nil {
+			log.Printf("failed to decode notification message: %v", err)
+		}
+	*/
+	case xml.Name{Space: ncNamespace, Local: "rpc-reply"}:
+		var reply RPCReplyMsg
+		if err := dec.DecodeElement(&reply, root); err != nil {
+			// What should we do here?  Kill the connection?
+			log.Printf("failed to decode rpc-reply message: %v", err)
+		}
+		ok, ch := s.replyChan(reply.MessageID)
+		if !ok {
+			// XXX: what should we do here?  Kill the connection?
+			log.Printf("cannot find reply channel for message-id %d", reply.MessageID)
+		}
+		ch <- reply
+	default:
+		// XXX: should we die here?
+		log.Printf("improper xml message type %q", root.Name.Local)
+	}
+	return nil
+}
+
 // recv is the main receive loop.  It runs concurrently to be able to handle
 // interleaved messages (like notifications).
 func (s *Session) recv() {
-	var (
-		r    io.Reader
-		dec  *xml.Decoder
-		root *xml.StartElement
-		err  error
-	)
-Loop:
+	var err error
 	for {
-		r, err = s.tr.MsgReader()
-		if err != nil {
+		if err = s.recvMsg(); err != nil {
 			break
-		}
-		dec = xml.NewDecoder(r)
-
-		root, err = startElement(dec)
-		if err != nil {
-			break
-		}
-
-		const ncNamespace = "urn:ietf:params:xml:ns:netconf:base:1.0"
-
-		switch root.Name {
-		/* Not supported yet. Will implement post beta release
-		case "notification":
-			var notif NotificationMsg
-			if err := dec.DecodeElement(&notif, root); err != nil {
-				log.Printf("failed to decode notification message: %v", err)
-			}
-		*/
-		case xml.Name{Space: ncNamespace, Local: "rpc-reply"}:
-			var reply RPCReplyMsg
-			if err := dec.DecodeElement(&reply, root); err != nil {
-				// What should we do here?  Kill the connection?
-				log.Printf("failed to decode rpc-reply message: %v", err)
-			}
-			ok, ch := s.replyChan(reply.MessageID)
-			if !ok {
-				// XXX: what should we do here?  Kill the connection?
-				log.Printf("cannot find reply channel for message-id %d", reply.MessageID)
-				continue Loop
-			}
-			ch <- reply
-		default:
-			// XXX: should we die here?
-			log.Printf("improper xml message type %q", root.Name.Local)
 		}
 	}
 	s.mu.Lock()
@@ -332,8 +337,13 @@ func (s *Session) Close(ctx context.Context) error {
 	// This may fail so save the error but still close the underlying transport.
 	rpcErr := s.Call(ctx, &closeSession{}, nil)
 
-	if err := s.tr.Close(); err != nil && err != io.EOF {
-		return err
+	// Close the connection and ignore errors if the remote side hung up first.
+	if err := s.tr.Close(); err != nil &&
+		!errors.Is(err, io.EOF) &&
+		!errors.Is(err, syscall.EPIPE) {
+		{
+			return err
+		}
 	}
 
 	if rpcErr != io.EOF {

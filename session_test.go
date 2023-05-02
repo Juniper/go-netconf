@@ -20,7 +20,7 @@ func newTestServer(t *testing.T) *testServer {
 	}
 }
 
-func (s *testServer) handle(r io.Reader, w io.WriteCloser) {
+func (s *testServer) handle(r io.ReadCloser, w io.WriteCloser) {
 	in, err := io.ReadAll(r)
 	if err != nil {
 		panic(fmt.Sprintf("testerver: failed to read incomming message: %v", err))
@@ -62,19 +62,19 @@ func (s *testServer) popReqString() (string, error) {
 func (s *testServer) transport() *testTransport { return newTestTransport(s.handle) }
 
 type testTransport struct {
-	handler func(r io.Reader, w io.WriteCloser)
-	out     chan io.Reader
+	handler func(r io.ReadCloser, w io.WriteCloser)
+	out     chan io.ReadCloser
 	// msgReceived, msgSent int
 }
 
-func newTestTransport(handler func(r io.Reader, w io.WriteCloser)) *testTransport {
+func newTestTransport(handler func(r io.ReadCloser, w io.WriteCloser)) *testTransport {
 	return &testTransport{
 		handler: handler,
-		out:     make(chan io.Reader),
+		out:     make(chan io.ReadCloser),
 	}
 }
 
-func (s *testTransport) MsgReader() (io.Reader, error) {
+func (s *testTransport) MsgReader() (io.ReadCloser, error) {
 	return <-s.out, nil
 }
 
