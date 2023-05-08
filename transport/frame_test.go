@@ -5,6 +5,8 @@ import (
 	"bytes"
 	"io"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -94,13 +96,10 @@ func TestChunkReaderReadByte(t *testing.T) {
 			}
 			buf = buf[:n]
 
-			if err != io.EOF && err != tc.err {
-				t.Errorf("unexpected error during read (want: %v, got: %v)", tc.err, err)
+			if err != io.EOF {
+				assert.Equal(t, err, tc.err)
 			}
-
-			if !bytes.Equal(buf, tc.want) {
-				t.Errorf("unexpected read (want: %q, got: %q)", tc.want, buf)
-			}
+			assert.Equal(t, tc.want, buf)
 		})
 	}
 }
@@ -113,13 +112,8 @@ func TestChunkReaderRead(t *testing.T) {
 			}
 
 			got, err := io.ReadAll(r)
-			if err != tc.err {
-				t.Errorf("unexpected error during read (want: %v, got: %v)", tc.err, err)
-			}
-
-			if !bytes.Equal(got, tc.want) {
-				t.Errorf("unexpected read (want: %q, got: %q)", tc.want, got)
-			}
+			assert.Equal(t, tc.err, err)
+			assert.Equal(t, tc.want, got)
 		})
 	}
 }
@@ -127,33 +121,20 @@ func TestChunkReaderRead(t *testing.T) {
 func TestChunkWriter(t *testing.T) {
 	buf := bytes.Buffer{}
 	w := &chunkWriter{bufio.NewWriter(&buf)}
+
 	n, err := w.Write([]byte("foo"))
-	if err != nil {
-		t.Fatalf("failed to write: %v", err)
-	}
+	assert.NoError(t, err)
+	assert.Equal(t, 3, n)
 
-	if n != 3 {
-		t.Errorf("failed number of bytes written (got %d, want %d)", n, 3)
-	}
+	n, err = w.Write([]byte("quux"))
+	assert.NoError(t, err)
+	assert.Equal(t, 4, n)
 
-	n, err = w.Write([]byte("bar"))
-	if err != nil {
-		t.Fatalf("failed to write: %v", err)
-	}
+	err = w.Close()
+	assert.NoError(t, err)
 
-	if n != 3 {
-		t.Errorf("failed number of bytes written (got %d, want %d)", n, 3)
-	}
-
-	if err := w.Close(); err != nil {
-		t.Fatalf("failed to close writer: %v", err)
-	}
-
-	want := []byte("\n#3\nfoo\n#3\nbar\n##\n")
-	if !bytes.Equal(buf.Bytes(), want) {
-		t.Errorf("unexpected data written (want %q, got %q", want, buf.Bytes())
-	}
-
+	want := []byte("\n#3\nfoo\n#4\nquux\n##\n")
+	assert.Equal(t, want, buf.Bytes())
 }
 
 func BenchmarkChunkedReadByte(b *testing.B) {
@@ -278,13 +259,11 @@ func TestEOMReadByte(t *testing.T) {
 			}
 			buf = buf[:n]
 
-			if err != io.EOF && err != tc.err {
-				t.Errorf("unexpected error during read (want: %v, got: %v)", tc.err, err)
+			if err != io.EOF {
+				assert.Equal(t, err, tc.err)
 			}
 
-			if !bytes.Equal(buf, tc.want) {
-				t.Errorf("unexpected read (want: %q, got: %q)", tc.want, buf)
-			}
+			assert.Equal(t, tc.want, buf)
 		})
 	}
 }
@@ -295,15 +274,9 @@ func TestEOMRead(t *testing.T) {
 			r := &eomReader{
 				r: bufio.NewReader(bytes.NewReader(tc.input)),
 			}
-
 			got, err := io.ReadAll(r)
-			if err != tc.err {
-				t.Errorf("unexpected error during read (want: %v, got: %v)", tc.err, err)
-			}
-
-			if !bytes.Equal(got, tc.want) {
-				t.Errorf("unexpected read (want: %q, got: %q)", tc.want, got)
-			}
+			assert.Equal(t, err, tc.err)
+			assert.Equal(t, tc.want, got)
 		})
 	}
 }
@@ -313,22 +286,14 @@ func TestEOMWriter(t *testing.T) {
 	w := &eomWriter{w: bufio.NewWriter(&buf)}
 
 	n, err := w.Write([]byte("foo"))
-	if err != nil {
-		t.Fatalf("failed to write: %v", err)
-	}
+	assert.NoError(t, err)
+	assert.Equal(t, 3, n)
 
-	if n != 3 {
-		t.Errorf("failed number of bytes written (got %d, want %d)", n, 3)
-	}
-
-	if err := w.Close(); err != nil {
-		t.Fatalf("failed to close writer: %v", err)
-	}
+	err = w.Close()
+	assert.NoError(t, err)
 
 	want := []byte("foo\n]]>]]>")
-	if !bytes.Equal(buf.Bytes(), want) {
-		t.Errorf("unexpected data written (want %q, got %q)", want, buf.Bytes())
-	}
+	assert.Equal(t, want, buf.Bytes())
 }
 
 // force benchmarks to not use any fancy ReadFroms's or other shortcuts

@@ -14,6 +14,7 @@ import (
 	"github.com/nemith/netconf"
 	ncssh "github.com/nemith/netconf/transport/ssh"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -36,15 +37,10 @@ func sshAuth(t *testing.T) ssh.AuthMethod {
 	case os.Getenv("NETCONF_DUT_SSHKEYFILE") != "":
 		keyFile := os.Getenv("NETCONF_DUT_SSHKEYFILE")
 		key, err := os.ReadFile(keyFile)
-		if err != nil {
-			t.Fatalf("couldn't open ssh private key %q: %v", keyFile, err)
-		}
+		require.NoErrorf(t, err, "couldn't open ssh private key %q", keyFile)
 
 		signer, err := ssh.ParsePrivateKey(key)
-		if err != nil {
-			t.Fatalf("couldn't parse private key %q: %v", keyFile, err)
-		}
-
+		require.NoError(t, err)
 		return ssh.PublicKeys(signer)
 	}
 	t.Fatal("NETCONF_DUT_SSHADDR tests require NETCONF_DUT_SSHPASS or NETCONF_DUT_SSHKEYFILE")
@@ -80,9 +76,7 @@ func setupSSH(t *testing.T) *netconf.Session {
 
 	ctx := context.Background()
 	tr, err := ncssh.Dial(ctx, "tcp", addr, config)
-	if err != nil {
-		t.Fatalf("failed to connect to dut: %v", err)
-	}
+	require.NoErrorf(t, err, "failed to connect to dut %q", addr)
 
 	// capture the framed communication
 	inCap := newLogWriter("<<<", t)
@@ -91,33 +85,28 @@ func setupSSH(t *testing.T) *netconf.Session {
 	tr.DebugCapture(inCap, outCap)
 
 	session, err := netconf.Open(tr)
-	if err != nil {
-		t.Fatalf("failed to create session: %v", err)
-	}
+	require.NoError(t, err, "failed to create netconf session")
 	return session
+}
+
+func TestSSHOpen(t *testing.T) {
+	session := setupSSH(t)
+	assert.NotZero(t, session.SessionID())
+	assert.NotEmpty(t, session.ServerCapabilities())
+	err := session.Close(context.Background())
+	assert.NoError(t, err)
 }
 
 func TestSSHGetConfig(t *testing.T) {
 	session := setupSSH(t)
 
-	if session.SessionID() <= 0 {
-		t.Fatalf("invalid session id: %d", session.SessionID())
-	}
-
-	if len(session.ServerCapabilities()) == 0 {
-		t.Fatalf("invalid server capabilities for session")
-	}
-
 	ctx := context.Background()
 	config, err := session.GetConfig(ctx, "running")
-	if err != nil {
-		t.Errorf("failed to call get-config: %v", err)
-	}
+	assert.NoError(t, err)
 	t.Logf("configuration: %s", config)
 
-	if err := session.Close(ctx); err != nil {
-		t.Fatalf("failed to close session: %v", err)
-	}
+	err = session.Close(ctx)
+	assert.NoError(t, err)
 }
 
 func TestBadGetConfig(t *testing.T) {

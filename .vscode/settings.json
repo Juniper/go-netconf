@@ -1,4 +1,7 @@
 {
+  "go": {
+    "buildTags": "inttest"
+  },
   "cSpell.words": [
     "byteslice",
     "innerxml",

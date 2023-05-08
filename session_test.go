@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type testServer struct {
@@ -146,18 +148,13 @@ func TestHello(t *testing.T) {
 			ts.queueRespString(tc.serverHello)
 
 			err := sess.handshake()
-			if err != nil && !tc.shouldError {
-				t.Errorf("unexpected error: %v", err)
+			if !tc.shouldError {
+				assert.NoError(t, err)
 			}
 
 			_, err = ts.popReqString()
-			if err != nil {
-				t.Error("failed to get response")
-			}
-
-			if sess.SessionID() != tc.wantID {
-				t.Errorf("session id does not match (want: %q got: %q)", tc.wantID, sess.SessionID())
-			}
+			assert.NoError(t, err)
+			assert.Equal(t, tc.wantID, sess.sessionID)
 		})
 	}
 }

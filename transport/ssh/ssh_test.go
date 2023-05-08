@@ -9,6 +9,8 @@ import (
 	"net"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -115,51 +117,37 @@ func TestTransport(t *testing.T) {
 		_, _ = io.Copy(&srvIn, ch)
 		close(srvDone)
 	})
-	if err != nil {
-		t.Fatalf("failed to start test sever: %v", err)
-	}
+	require.NoError(t, err)
 
 	config := &ssh.ClientConfig{
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
-
 	tr, err := Dial(context.Background(), "tcp", server.addr.String(), config)
-	if err != nil {
-		t.Fatalf("failed to dial server: %v", err)
-	}
+	require.NoError(t, err)
 
 	// test read
 	r, err := tr.MsgReader()
-	if err != nil {
-		t.Errorf("failed to get new message reader: %v", err)
-	}
+	assert.NoError(t, err)
+
 	_, err = io.ReadAll(r)
-	if err != nil {
-		t.Errorf("failed to read message: %v", err)
-	}
+	assert.NoError(t, err)
 
 	// test write
 	w, err := tr.MsgWriter()
-	if err != nil {
-		t.Errorf("failed to get new message writer: %v", err)
-	}
+	assert.NoError(t, err)
 
 	out := "a man a plan a canal panama"
 	_, _ = io.WriteString(w, out)
 
-	if err := w.Close(); err != nil {
-		t.Errorf("failed to close message writer: %v", err)
-	}
+	err = w.Close()
+	assert.NoError(t, err)
 
-	if err := tr.Close(); err != nil {
-		t.Errorf("failed to close transport: %v", err)
-	}
+	err = tr.Close()
+	assert.NoError(t, err)
 
 	// wait for the server to close
 	<-srvDone
 
 	want := out + "\n]]>]]>"
-	if srvIn.String() != want {
-		t.Errorf("unexpected data received by server: (want: %q, got %q)", want, srvIn.String())
-	}
+	assert.Equal(t, want, srvIn.String())
 }

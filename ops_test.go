@@ -1,13 +1,14 @@
 package netconf
 
 import (
-	"bytes"
 	"context"
 	"encoding/xml"
 	"regexp"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestUnmarshalOk(t *testing.T) {
@@ -27,13 +28,9 @@ func TestUnmarshalOk(t *testing.T) {
 				Ok      ExtantBool `xml:"ok"`
 			}
 
-			if err := xml.Unmarshal([]byte(tc.input), &v); err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-
-			if bool(v.Ok) != tc.want {
-				t.Errorf("unexpected results (want: %t got: %t)", tc.want, v.Ok)
-			}
+			err := xml.Unmarshal([]byte(tc.input), &v)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.want, bool(v.Ok))
 		})
 	}
 }
@@ -60,13 +57,10 @@ func TestMarshalDatastore(t *testing.T) {
 			}{Target: tc.input}
 
 			got, err := xml.Marshal(&v)
-			if err != nil && !tc.shouldErr {
-				t.Fatalf("unexpected error: %v", err)
+			if !tc.shouldErr {
+				assert.NoError(t, err)
 			}
-
-			if string(got) != tc.want {
-				t.Errorf("unexpected results (want:: %q, got: %q)", tc.want, string(got))
-			}
+			assert.Equal(t, tc.want, string(got))
 		})
 	}
 }
@@ -79,19 +73,13 @@ func TestGetConfig(t *testing.T) {
 	ts.queueRespString("<rpc-reply xmlns='urn:ietf:params:xml:ns:netconf:base:1.0' message-id='1'><data>foo</data></rpc-reply>")
 
 	got, err := sess.GetConfig(context.Background(), Running)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
+	assert.NoError(t, err)
 
 	_, err = ts.popReqString()
-	if err != nil {
-		t.Errorf("failed to read request sent to server")
-	}
+	assert.NoError(t, err)
 
 	want := []byte("foo")
-	if !bytes.Equal(want, got) {
-		t.Errorf("incorrent config returned (want %q, got %q)", want, got)
-	}
+	assert.Equal(t, want, got)
 }
 
 type structuredCfg struct {
@@ -197,27 +185,18 @@ func TestEditConfig(t *testing.T) {
 			ts.queueRespString(`<rpc-reply xmlns="urn:ietf:params:xml:ns:netconf:base:1.0" message-id="1"><ok/></rpc-reply>`)
 
 			err := sess.EditConfig(context.Background(), tc.target, tc.config, tc.options...)
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
-			}
+			assert.NoError(t, err)
 
 			sentMsg, err := ts.popReq()
-			if err != nil {
-				t.Errorf("failed to read message sent to sever: %v", err)
-			}
+			assert.NoError(t, err)
 
 			for _, match := range tc.mustMatch {
-				if !match.Match(sentMsg) {
-					t.Errorf("sent message didn't match  `%s`", match.String())
-				}
+				assert.Regexp(t, match, string(sentMsg))
 			}
 
 			for _, match := range tc.noMatch {
-				if match.Match(sentMsg) {
-					t.Errorf("sent message matched  `%s`", match.String())
-				}
+				assert.NotRegexp(t, match, string(sentMsg))
 			}
-
 		})
 	}
 }
@@ -268,19 +247,13 @@ func TestCopyConfig(t *testing.T) {
 			ts.queueRespString(`<rpc-reply xmlns="urn:ietf:params:xml:ns:netconf:base:1.0" message-id="1"><ok/></rpc-reply>`)
 
 			err := sess.CopyConfig(context.Background(), tc.source, tc.target)
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
-			}
+			assert.NoError(t, err)
 
 			sentMsg, err := ts.popReq()
-			if err != nil {
-				t.Errorf("failed to read message sent to sever: %v", err)
-			}
+			assert.NoError(t, err)
 
 			for _, match := range tc.matches {
-				if !match.Match(sentMsg) {
-					t.Errorf("sent message didn't match `%s`", match.String())
-				}
+				assert.Regexp(t, match, string(sentMsg))
 			}
 		})
 	}
@@ -308,19 +281,13 @@ func TestDeleteConfig(t *testing.T) {
 			ts.queueRespString(`<rpc-reply xmlns="urn:ietf:params:xml:ns:netconf:base:1.0" message-id="1"><ok/></rpc-reply>`)
 
 			err := sess.DeleteConfig(context.Background(), tc.target)
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
-			}
+			assert.NoError(t, err)
 
 			sentMsg, err := ts.popReq()
-			if err != nil {
-				t.Errorf("failed to read message sent to sever: %v", err)
-			}
+			assert.NoError(t, err)
 
 			for _, match := range tc.matches {
-				if !match.Match(sentMsg) {
-					t.Errorf("sent message didn't match `%s`", match.String())
-				}
+				assert.Regexp(t, match, string(sentMsg))
 			}
 		})
 	}
@@ -352,19 +319,13 @@ func TestValidateConfig(t *testing.T) {
 			ts.queueRespString(`<rpc-reply xmlns="urn:ietf:params:xml:ns:netconf:base:1.0" message-id="1"><ok/></rpc-reply>`)
 
 			err := sess.Validate(context.Background(), tc.source)
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
-			}
+			assert.NoError(t, err)
 
 			sentMsg, err := ts.popReq()
-			if err != nil {
-				t.Errorf("failed to read message sent to sever: %v", err)
-			}
+			assert.NoError(t, err)
 
 			for _, match := range tc.matches {
-				if !match.Match(sentMsg) {
-					t.Errorf("sent message didn't match `%s`", match.String())
-				}
+				assert.Regexp(t, match, string(sentMsg))
 			}
 		})
 	}
@@ -392,19 +353,13 @@ func TestLock(t *testing.T) {
 			ts.queueRespString(`<rpc-reply xmlns="urn:ietf:params:xml:ns:netconf:base:1.0" message-id="1"><ok/></rpc-reply>`)
 
 			err := sess.Lock(context.Background(), tc.target)
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
-			}
+			assert.NoError(t, err)
 
 			sentMsg, err := ts.popReq()
-			if err != nil {
-				t.Errorf("failed to read message sent to sever: %v", err)
-			}
+			assert.NoError(t, err)
 
 			for _, match := range tc.matches {
-				if !match.Match(sentMsg) {
-					t.Errorf("sent message didn't match `%s`", match.String())
-				}
+				assert.Regexp(t, match, string(sentMsg))
 			}
 		})
 	}
@@ -432,19 +387,13 @@ func TestUnlock(t *testing.T) {
 			ts.queueRespString(`<rpc-reply xmlns="urn:ietf:params:xml:ns:netconf:base:1.0" message-id="1"><ok/></rpc-reply>`)
 
 			err := sess.Unlock(context.Background(), tc.target)
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
-			}
+			assert.NoError(t, err)
 
 			sentMsg, err := ts.popReq()
-			if err != nil {
-				t.Errorf("failed to read message sent to sever: %v", err)
-			}
+			assert.NoError(t, err)
 
 			for _, match := range tc.matches {
-				if !match.Match(sentMsg) {
-					t.Errorf("sent message didn't match `%s`", match.String())
-				}
+				assert.Regexp(t, match, string(sentMsg))
 			}
 		})
 	}
@@ -472,19 +421,13 @@ func TestKillSession(t *testing.T) {
 			ts.queueRespString(`<rpc-reply xmlns="urn:ietf:params:xml:ns:netconf:base:1.0" message-id="1"><ok/></rpc-reply>`)
 
 			err := sess.KillSession(context.Background(), tc.id)
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
-			}
+			assert.NoError(t, err)
 
 			sentMsg, err := ts.popReq()
-			if err != nil {
-				t.Errorf("failed to read message sent to sever: %v", err)
-			}
+			assert.NoError(t, err)
 
 			for _, match := range tc.matches {
-				if !match.Match(sentMsg) {
-					t.Errorf("sent message didn't match `%s`", match.String())
-				}
+				assert.Regexp(t, match, string(sentMsg))
 			}
 		})
 	}
@@ -541,19 +484,13 @@ func TestCommit(t *testing.T) {
 			ts.queueRespString(`<rpc-reply xmlns="urn:ietf:params:xml:ns:netconf:base:1.0" message-id="1"><ok/></rpc-reply>`)
 
 			err := sess.Commit(context.Background(), tc.options...)
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
-			}
+			assert.NoError(t, err)
 
 			sentMsg, err := ts.popReq()
-			if err != nil {
-				t.Errorf("failed to read message sent to sever: %v", err)
-			}
+			assert.NoError(t, err)
 
 			for _, match := range tc.matches {
-				if !match.Match(sentMsg) {
-					t.Errorf("sent message didn't match `%s`", match.String())
-				}
+				assert.Regexp(t, match, string(sentMsg))
 			}
 		})
 	}
@@ -589,19 +526,13 @@ func TestCancelCommit(t *testing.T) {
 			ts.queueRespString(`<rpc-reply xmlns="urn:ietf:params:xml:ns:netconf:base:1.0" message-id="1"><ok/></rpc-reply>`)
 
 			err := sess.CancelCommit(context.Background(), tc.options...)
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
-			}
+			assert.NoError(t, err)
 
 			sentMsg, err := ts.popReq()
-			if err != nil {
-				t.Errorf("failed to read message sent to sever: %v", err)
-			}
+			assert.NoError(t, err)
 
 			for _, match := range tc.matches {
-				if !match.Match(sentMsg) {
-					t.Errorf("sent message didn't match `%s`", match.String())
-				}
+				assert.Regexp(t, match, string(sentMsg))
 			}
 		})
 	}
