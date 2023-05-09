@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"sync"
 	"syscall"
 
@@ -339,6 +340,7 @@ func (s *Session) Close(ctx context.Context) error {
 
 	// Close the connection and ignore errors if the remote side hung up first.
 	if err := s.tr.Close(); err != nil &&
+		!errors.Is(err, net.ErrClosed) &&
 		!errors.Is(err, io.EOF) &&
 		!errors.Is(err, syscall.EPIPE) {
 		{
