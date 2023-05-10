@@ -130,6 +130,12 @@ func (t *TransportBasicIO) WaitForFunc(f func([]byte) (int, error)) ([]byte, err
 			if err != io.EOF {
 				return nil, err
 			}
+			// Handle EOF but no message separator to mark
+			// the end of the message
+			if n == 0 {
+				out.Write(buf[0:pos])
+				return out.Bytes(), nil
+			}
 			break
 		}
 
