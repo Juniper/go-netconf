@@ -14,6 +14,8 @@ import (
 	"github.com/nemith/netconf/transport"
 )
 
+var ErrClosed = errors.New("closed connection")
+
 type sessionConfig struct {
 	capabilities []string
 }
@@ -44,7 +46,7 @@ type Session struct {
 
 	mu      sync.Mutex
 	seq     uint64
-	reqs    map[uint64]chan RPCReplyMsg
+	reqs    map[uint64]*req
 	closing bool
 }
 
@@ -60,7 +62,7 @@ func newSession(transport transport.Transport, opts ...SessionOption) *Session {
 	s := &Session{
 		tr:         transport,
 		clientCaps: newCapabilitySet(cfg.capabilities...),
-		reqs:       make(map[uint64]chan RPCReplyMsg),
+		reqs:       make(map[uint64]*req),
 	}
 	return s
 }
@@ -156,6 +158,11 @@ func startElement(d *xml.Decoder) (*xml.StartElement, error) {
 	}
 }
 
+type req struct {
+	reply chan RPCReplyMsg
+	ctx   context.Context
+}
+
 func (s *Session) recvMsg() error {
 	r, err := s.tr.MsgReader()
 	if err != nil {
@@ -183,19 +190,22 @@ func (s *Session) recvMsg() error {
 		var reply RPCReplyMsg
 		if err := dec.DecodeElement(&reply, root); err != nil {
 			// What should we do here?  Kill the connection?
-			log.Printf("failed to decode rpc-reply message: %v", err)
+			return fmt.Errorf("failed to decode rpc-reply message: %w", err)
 		}
-		ok, ch := s.replyChan(reply.MessageID)
+		ok, req := s.req(reply.MessageID)
 		if !ok {
-			// XXX: what should we do here?  Kill the connection?
-			log.Printf("cannot find reply channel for message-id %d", reply.MessageID)
+			return fmt.Errorf("cannot find reply channel for message-id: %d", reply.MessageID)
 		}
-		ch <- reply
+
+		select {
+		case req.reply <- reply:
+			return nil
+		case <-req.ctx.Done():
+			return fmt.Errorf("message %d context canceled: %s", reply.MessageID, req.ctx.Err().Error())
+		}
 	default:
-		// XXX: should we die here?
-		log.Printf("improper xml message type %q", root.Name.Local)
+		return fmt.Errorf("unknown message type: %q", root.Name.Local)
 	}
-	return nil
 }
 
 // recv is the main receive loop.  It runs concurrently to be able to handle
@@ -203,16 +213,17 @@ func (s *Session) recvMsg() error {
 func (s *Session) recv() {
 	var err error
 	for {
-		if err = s.recvMsg(); err != nil {
+		if err := s.recvMsg(); errors.Is(err, io.EOF) {
 			break
 		}
+		log.Printf("netconf: failed to read incoming message: %s", err)
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	// Close all outstanding requests
-	for _, ch := range s.reqs {
-		close(ch)
+	for _, req := range s.reqs {
+		close(req.reply)
 	}
 
 	if err == io.EOF || err == io.ErrUnexpectedEOF {
@@ -221,20 +232,19 @@ func (s *Session) recv() {
 		}
 	}
 
-	// XXX: This isn't right either.
-	log.Fatal(err)
+	log.Printf("netconf: connection closed unexpectedly")
 }
 
-func (s *Session) replyChan(msgID uint64) (bool, chan RPCReplyMsg) {
+func (s *Session) req(msgID uint64) (bool, *req) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	ch, ok := s.reqs[msgID]
+	req, ok := s.reqs[msgID]
 	if !ok {
 		return false, nil
 	}
 	delete(s.reqs, msgID)
-	return true, ch
+	return true, req
 }
 
 func (s *Session) writeMsg(v interface{}) error {
@@ -249,7 +259,7 @@ func (s *Session) writeMsg(v interface{}) error {
 	return w.Close()
 }
 
-func (s *Session) send(msg *RPCMsg) (chan RPCReplyMsg, error) {
+func (s *Session) send(ctx context.Context, msg *RPCMsg) (chan RPCReplyMsg, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -262,7 +272,10 @@ func (s *Session) send(msg *RPCMsg) (chan RPCReplyMsg, error) {
 
 	// cap of 1 makes sure we don't block on send
 	ch := make(chan RPCReplyMsg, 1)
-	s.reqs[msg.MessageID] = ch
+	s.reqs[msg.MessageID] = &req{
+		reply: ch,
+		ctx:   ctx,
+	}
 
 	return ch, nil
 }
@@ -271,7 +284,7 @@ func (s *Session) send(msg *RPCMsg) (chan RPCReplyMsg, error) {
 // RPCReplyMsg.  In most cases `Session.Call` will do what you want handling
 // errors and marshaling/unmarshaling your data.`
 func (s *Session) Do(ctx context.Context, msg *RPCMsg) (*RPCReplyMsg, error) {
-	ch, err := s.send(msg)
+	ch, err := s.send(ctx, msg)
 	if err != nil {
 		return nil, err
 	}
@@ -279,8 +292,7 @@ func (s *Session) Do(ctx context.Context, msg *RPCMsg) (*RPCReplyMsg, error) {
 	select {
 	case reply, ok := <-ch:
 		if !ok {
-			// XXX: What error should be returned from here if the channel is closed
-			return nil, io.EOF
+			return nil, ErrClosed
 		}
 		return &reply, nil
 	case <-ctx.Done():
@@ -290,8 +302,6 @@ func (s *Session) Do(ctx context.Context, msg *RPCMsg) (*RPCReplyMsg, error) {
 		s.mu.Unlock()
 
 		return nil, ctx.Err()
-
-		// XXX: stop channel on close?
 	}
 }
 
