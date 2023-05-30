@@ -247,7 +247,7 @@ func (s *Session) req(msgID uint64) (bool, *req) {
 	return true, req
 }
 
-func (s *Session) writeMsg(v interface{}) error {
+func (s *Session) writeMsg(v any) error {
 	w, err := s.tr.MsgWriter()
 	if err != nil {
 		return err
@@ -307,7 +307,7 @@ func (s *Session) Do(ctx context.Context, msg *RPCMsg) (*RPCReplyMsg, error) {
 
 // Call issues a rpc call for the given NETCONF operation and unmarshaling the
 // response into `resp`.
-func (s *Session) Call(ctx context.Context, op interface{}, resp interface{}) error {
+func (s *Session) Call(ctx context.Context, op any, resp any) error {
 	msg := &RPCMsg{
 		Operation: op,
 	}

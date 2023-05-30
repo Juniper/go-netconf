@@ -247,8 +247,8 @@ type editConfigReq struct {
 	TestStrategy         TestStrategy  `xml:"test-option,omitempty"`
 	ErrorStrategy        ErrorStrategy `xml:"error-option,omitempty"`
 	// either of these two values
-	Config interface{} `xml:"config,omitempty"`
-	URL    string      `xml:"url,omitempty"`
+	Config any    `xml:"config,omitempty"`
+	URL    string `xml:"url,omitempty"`
 }
 
 // EditOption is a optional arguments to [Session.EditConfig] method
@@ -260,7 +260,7 @@ type EditConfigOption interface {
 // updating an existing target config datastore.
 //
 // [RFC6241 7.2]: https://www.rfc-editor.org/rfc/rfc6241.html#section-7.2
-func (s *Session) EditConfig(ctx context.Context, target Datastore, config interface{}, opts ...EditConfigOption) error {
+func (s *Session) EditConfig(ctx context.Context, target Datastore, config any, opts ...EditConfigOption) error {
 	req := editConfigReq{
 		Target: target,
 	}
@@ -290,9 +290,9 @@ func (s *Session) EditConfig(ctx context.Context, target Datastore, config inter
 }
 
 type copyConfigReq struct {
-	XMLName xml.Name    `xml:"copy-config"`
-	Source  interface{} `xml:"source"`
-	Target  interface{} `xml:"target"`
+	XMLName xml.Name `xml:"copy-config"`
+	Source  any      `xml:"source"`
+	Target  any      `xml:"target"`
 }
 
 // CopyConfig issues the `<copy-config>` operation as defined in [RFC6241 7.3]
@@ -304,7 +304,7 @@ type copyConfigReq struct {
 // for the source or target datastore.
 //
 // [RFC6241 7.3] https://www.rfc-editor.org/rfc/rfc6241.html#section-7.3
-func (s *Session) CopyConfig(ctx context.Context, source, target interface{}) error {
+func (s *Session) CopyConfig(ctx context.Context, source, target any) error {
 	req := copyConfigReq{
 		Source: source,
 		Target: target,
@@ -372,11 +372,11 @@ func (s *Session) KillSession(ctx context.Context, sessionID uint32) error {
 }
 
 type validateReq struct {
-	XMLName xml.Name    `xml:"validate"`
-	Source  interface{} `xml:"source"`
+	XMLName xml.Name `xml:"validate"`
+	Source  any      `xml:"source"`
 }
 
-func (s *Session) Validate(ctx context.Context, source interface{}) error {
+func (s *Session) Validate(ctx context.Context, source any) error {
 	req := validateReq{
 		Source: source,
 	}

@@ -147,7 +147,7 @@ func TestMarshalHelloMsg(t *testing.T) {
 func TestMarshalRPCMsg(t *testing.T) {
 	tt := []struct {
 		name      string
-		operation interface{}
+		operation any
 		err       bool
 		want      []byte
 	}{

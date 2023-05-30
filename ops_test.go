@@ -112,7 +112,7 @@ func TestEditConfig(t *testing.T) {
 	tt := []struct {
 		name      string
 		target    Datastore
-		config    interface{}
+		config    any
 		options   []EditConfigOption
 		mustMatch []*regexp.Regexp
 		noMatch   []*regexp.Regexp
@@ -206,7 +206,7 @@ func TestEditConfig(t *testing.T) {
 func TestCopyConfig(t *testing.T) {
 	tt := []struct {
 		name           string
-		source, target interface{}
+		source, target any
 		matches        []*regexp.Regexp
 	}{
 		{
@@ -296,7 +296,7 @@ func TestDeleteConfig(t *testing.T) {
 func TestValidateConfig(t *testing.T) {
 	tt := []struct {
 		name    string
-		source  interface{}
+		source  any
 		matches []*regexp.Regexp
 	}{
 		{
