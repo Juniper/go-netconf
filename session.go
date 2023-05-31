@@ -213,10 +213,13 @@ func (s *Session) recvMsg() error {
 func (s *Session) recv() {
 	var err error
 	for {
-		if err := s.recvMsg(); errors.Is(err, io.EOF) {
+		err = s.recvMsg()
+		if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
 			break
 		}
-		log.Printf("netconf: failed to read incoming message: %s", err)
+		if err != nil {
+			log.Printf("netconf: failed to read incoming message: %v", err)
+		}
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -226,13 +229,9 @@ func (s *Session) recv() {
 		close(req.reply)
 	}
 
-	if err == io.EOF || err == io.ErrUnexpectedEOF {
-		if s.closing {
-			return
-		}
+	if !s.closing {
+		log.Printf("netconf: connection closed unexpectedly")
 	}
-
-	log.Printf("netconf: connection closed unexpectedly")
 }
 
 func (s *Session) req(msgID uint64) (bool, *req) {
