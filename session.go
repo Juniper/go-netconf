@@ -17,7 +17,8 @@ import (
 var ErrClosed = errors.New("closed connection")
 
 type sessionConfig struct {
-	capabilities []string
+	capabilities        []string
+	notificationHandler NotificationHandler
 }
 
 type SessionOption interface {
@@ -36,19 +37,43 @@ func WithCapability(capabilities ...string) SessionOption {
 	return capabilityOpt(capabilities)
 }
 
+type notificationHandlerOpt NotificationHandler
+
+func (o notificationHandlerOpt) apply(cfg *sessionConfig) {
+	cfg.notificationHandler = NotificationHandler(o)
+}
+
+func WithNotificationHandler(nh NotificationHandler) SessionOption {
+	return notificationHandlerOpt(nh)
+}
+
 // Session is represents a netconf session to a one given device.
 type Session struct {
 	tr        transport.Transport
 	sessionID uint64
 
-	clientCaps capabilitySet
-	serverCaps capabilitySet
+	clientCaps          capabilitySet
+	serverCaps          capabilitySet
+	notificationHandler NotificationHandler
 
 	mu      sync.Mutex
 	seq     uint64
 	reqs    map[uint64]*req
 	closing bool
 }
+
+// NotificationHandler function allows to work with received notifications.
+// A NotificationHandler function can be passed in as an option when calling Open method of Session object
+// A typical use of the NofificationHandler function is to retrieve notifications once they are received so
+// that they can be parsed and/or stored somewhere.
+// Sample usage:
+// func GetNotificationsHandler(c chan string) netconf.NotificationsHandler {
+//	return func(nm NotificationMsg) {
+//		// just send the raw notification data to the channel
+//		c <- nm
+//	}
+//}
+type NotificationHandler func(msg NotificationMsg)
 
 func newSession(transport transport.Transport, opts ...SessionOption) *Session {
 	cfg := sessionConfig{
@@ -60,9 +85,10 @@ func newSession(transport transport.Transport, opts ...SessionOption) *Session {
 	}
 
 	s := &Session{
-		tr:         transport,
-		clientCaps: newCapabilitySet(cfg.capabilities...),
-		reqs:       make(map[uint64]*req),
+		tr:                  transport,
+		clientCaps:          newCapabilitySet(cfg.capabilities...),
+		reqs:                make(map[uint64]*req),
+		notificationHandler: cfg.notificationHandler,
 	}
 	return s
 }
@@ -176,16 +202,21 @@ func (s *Session) recvMsg() error {
 		return err
 	}
 
-	const ncNamespace = "urn:ietf:params:xml:ns:netconf:base:1.0"
+	const (
+		ncNamespace    = "urn:ietf:params:xml:ns:netconf:base:1.0"
+		notifNamespace = "urn:ietf:params:xml:ns:netconf:notification:1.0"
+	)
 
 	switch root.Name {
-	/* Not supported yet. Will implement post beta release
-	case "notification":
+	case xml.Name{Space: notifNamespace, Local: "notification"}:
+		if s.notificationHandler == nil {
+			return nil
+		}
 		var notif NotificationMsg
 		if err := dec.DecodeElement(&notif, root); err != nil {
-			log.Printf("failed to decode notification message: %v", err)
+			return fmt.Errorf("failed to decode notification message: %w", err)
 		}
-	*/
+		s.notificationHandler(notif)
 	case xml.Name{Space: ncNamespace, Local: "rpc-reply"}:
 		var reply RPCReplyMsg
 		if err := dec.DecodeElement(&reply, root); err != nil {
@@ -206,6 +237,7 @@ func (s *Session) recvMsg() error {
 	default:
 		return fmt.Errorf("unknown message type: %q", root.Name.Local)
 	}
+	return nil
 }
 
 // recv is the main receive loop.  It runs concurrently to be able to handle

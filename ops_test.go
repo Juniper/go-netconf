@@ -537,3 +537,73 @@ func TestCancelCommit(t *testing.T) {
 		})
 	}
 }
+
+func TestCreateSubscription(t *testing.T) {
+	st, err := time.Parse(time.RFC3339, "2023-06-07T18:31:48+02:00")
+	if err != nil {
+		t.Fatalf("invalid startTime: %s", st)
+	}
+	et, err := time.Parse(time.RFC3339, "2023-06-07T18:33:48+02:00")
+	if err != nil {
+		t.Fatalf("invalid endTime: %s", et)
+	}
+	tt := []struct {
+		name    string
+		options []CreateSubscriptionOption
+		matches []*regexp.Regexp
+	}{
+		{
+			name: "noOptions",
+			matches: []*regexp.Regexp{
+				regexp.MustCompile(`<create-subscription></create-subscription>`),
+			},
+		},
+		{
+			name:    "startTime option",
+			options: []CreateSubscriptionOption{WithStartTimeOption(st)},
+			matches: []*regexp.Regexp{
+				regexp.MustCompile(`<create-subscription><startTime>` + regexp.QuoteMeta(st.Format(time.RFC3339)) + `</startTime></create-subscription>`),
+			},
+		},
+		{
+			name:    "endTime option",
+			options: []CreateSubscriptionOption{WithEndTimeOption(et)},
+			matches: []*regexp.Regexp{
+				regexp.MustCompile(`<create-subscription><endTime>` + regexp.QuoteMeta(et.Format(time.RFC3339)) + `</endTime></create-subscription>`),
+			},
+		},
+		{
+			name:    "stream option",
+			options: []CreateSubscriptionOption{WithStreamOption("thestream")},
+			matches: []*regexp.Regexp{
+				regexp.MustCompile(`<create-subscription><stream>thestream</stream></create-subscription>`),
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			ts := newTestServer(t)
+			sess := newSession(ts.transport())
+			go sess.recv()
+
+			ts.queueRespString(`<rpc-reply xmlns="urn:ietf:params:xml:ns:netconf:base:1.0" message-id="1"><ok/></rpc-reply>`)
+
+			err := sess.CreateSubscription(context.Background(), tc.options...)
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+
+			sentMsg, err := ts.popReq()
+			if err != nil {
+				t.Errorf("failed to read message sent to sever: %v", err)
+			}
+
+			for _, match := range tc.matches {
+				if !match.Match(sentMsg) {
+					t.Errorf("sent message didn't match `%s`", match.String())
+				}
+			}
+		})
+	}
+}
