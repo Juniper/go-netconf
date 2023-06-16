@@ -1,6 +1,6 @@
 # Go `netconf` client library
 
-WARNING: This is currently pre-alpha quality.  The API isn't solid yet and a lot of testing still needs to be done as well as additional feaures.
+WARNING: This is currently alpha quality.  The API isn't solid yet and a lot of testing still needs to be done as well as additional feaures.  Working for a solid beta API is incoming.
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/nemith/netconf.svg)](https://pkg.go.dev/github.com/nemith/netconf)
 [![Report Card](https://goreportcard.com/badge/github.com/nemith/netconf)](https://goreportcard.com/report/github.com/nemith/netconf)
@@ -10,7 +10,10 @@ WARNING: This is currently pre-alpha quality.  The API isn't solid yet and a lot
 
 This library is used to create client applications for connecting to network devices via NETCONF.
 
-## Support
+Like Go itself, only the latest two Go versions are tested and supported (Go 1.19 or Go 1.20).
+
+
+## RFC Support
 
 | RFC                                                                               | Support                      |
 | --------------------------------------------------------------------------------- | ---------------------------- |
@@ -37,6 +40,8 @@ There are other RFC around YANG integration that will be looked at later.
 [RFC8071]: https://www.rfc-editor.org/rfc/rfc8071.html
 
 See [TODO.md](TODO.md) for a list of what is left to implement these features.
+
+## Comparison
 
 ### Differences from [`github.com/juniper/go-netconf/netconf`](https://pkg.go.dev/github.com/Juniper/go-netconf)
 
