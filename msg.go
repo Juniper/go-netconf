@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"golang.org/x/exp/slices"
 )
 
 // RawXML captures the raw xml for the given element.  Used to process certain
@@ -76,10 +78,36 @@ func (r Reply) Decode(v interface{}) error {
 	return xml.Unmarshal(r.Body, v)
 }
 
-// Err will return the error(s) from a Reply that are severity of `error` or
-// higher.
-func (r Reply) Err() error {
-	errs := r.Errors.Filter()
+// Err will return go error(s) from a Reply that are of the given severities. If
+// no severity is given then it defaults to `ErrSevError`.
+//
+// If one error is present then the underlyign type is `RPCError`. If more than
+// one error exists than the underlying type is `[]RPCError`
+//
+// Example
+
+// get all errors with severity of error
+//
+//	if err := reply.Err(ErrSevError); err != nil { /* ... */ }
+//
+// or
+//
+//	if err := reply.Err(); err != nil { /* ... */ }
+//
+// get all errors with severity of only warning
+//
+//	if err := reply.Err(ErrSevWarning); err != nil { /* ... */ }
+//
+// get all errors
+//
+//	if err := reply.Err(ErrSevWarning, ErrSevError); err != nil { /* ... */ }
+func (r Reply) Err(severity ...ErrSeverity) error {
+	// fast escape for no errors
+	if len(r.Errors) == 0 {
+		return nil
+	}
+
+	errs := r.Errors.Filter(severity...)
 	switch len(errs) {
 	case 0:
 		return nil
@@ -105,8 +133,8 @@ func (r Notification) Decode(v interface{}) error {
 type ErrSeverity string
 
 const (
-	ErrSevError   ErrSeverity = "error"
-	ErrSevWarning ErrSeverity = "warning"
+	SevError   ErrSeverity = "error"
+	SevWarning ErrSeverity = "warning"
 )
 
 type ErrType string
@@ -154,19 +182,23 @@ type RPCError struct {
 }
 
 func (e RPCError) Error() string {
-	return fmt.Sprintf("rpc error: %s", e.Message)
+	return fmt.Sprintf("netconf error: %s %s: %s", e.Type, e.Tag, e.Message)
 }
 
 type RPCErrors []RPCError
 
-func (errs RPCErrors) Filter() RPCErrors {
+func (errs RPCErrors) Filter(severity ...ErrSeverity) RPCErrors {
 	if len(errs) == 0 {
 		return nil
 	}
 
+	if len(severity) == 0 {
+		severity = []ErrSeverity{SevError}
+	}
+
 	filteredErrs := make(RPCErrors, 0, len(errs))
 	for _, err := range errs {
-		if err.Severity == ErrSevWarning {
+		if !slices.Contains(severity, err.Severity) {
 			continue
 		}
 		filteredErrs = append(filteredErrs, err)

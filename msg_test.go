@@ -244,7 +244,7 @@ func TestUnmarshalRPCReply(t *testing.T) {
 					{
 						Type:     ErrTypeProtocol,
 						Tag:      ErrOperationFailed,
-						Severity: ErrSevError,
+						Severity: SevError,
 						Message:  "syntax error, expecting <candidate/> or <running/>",
 						Info: []byte(`
 <bad-element>non-exist</bad-element>
