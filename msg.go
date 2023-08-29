@@ -36,20 +36,20 @@ func (x *RawXML) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 }
 
 // helloMsg maps the xml value of the <hello> message in RFC6241
-type HelloMsg struct {
+type helloMsg struct {
 	XMLName      xml.Name `xml:"urn:ietf:params:xml:ns:netconf:base:1.0 hello"`
 	SessionID    uint64   `xml:"session-id,omitempty"`
 	Capabilities []string `xml:"capabilities>capability"`
 }
 
-// RPCMsg maps the xml value of <rpc> in RFC6241
-type RPCMsg struct {
+// request maps the xml value of <rpc> in RFC6241
+type request struct {
 	XMLName   xml.Name `xml:"urn:ietf:params:xml:ns:netconf:base:1.0 rpc"`
 	MessageID uint64   `xml:"message-id,attr"`
 	Operation any      `xml:",innerxml"`
 }
 
-func (msg *RPCMsg) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+func (msg *request) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	if msg.Operation == nil {
 		return fmt.Errorf("operation cannot be nil")
 	}
@@ -57,23 +57,49 @@ func (msg *RPCMsg) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	// TODO: validate operation is named?
 
 	// alias the type to not cause recursion calling e.Encode
-	type rpcMsg RPCMsg
+	type rpcMsg request
 	inner := rpcMsg(*msg)
 	return e.Encode(&inner)
 }
 
-// RPCReplyMsg maps the xml value of <rpc-reply> in RFC6241
-type RPCReplyMsg struct {
+// Reply maps the xml value of <rpc-reply> in RFC6241
+type Reply struct {
 	XMLName   xml.Name  `xml:"urn:ietf:params:xml:ns:netconf:base:1.0 rpc-reply"`
 	MessageID uint64    `xml:"message-id,attr"`
 	Errors    RPCErrors `xml:"rpc-error,omitempty"`
 	Body      []byte    `xml:",innerxml"`
 }
 
-type NotificationMsg struct {
+// Decode will decode the body of a reply into a value pointed to by v.  This is
+// a simple wrapper around xml.Unmarshal.
+func (r Reply) Decode(v interface{}) error {
+	return xml.Unmarshal(r.Body, v)
+}
+
+// Err will return the error(s) from a Reply that are severity of `error` or
+// higher.
+func (r Reply) Err() error {
+	errs := r.Errors.Filter()
+	switch len(errs) {
+	case 0:
+		return nil
+	case 1:
+		return errs[0]
+	default:
+		return errs
+	}
+}
+
+type Notification struct {
 	XMLName   xml.Name  `xml:"urn:ietf:params:xml:ns:netconf:notification:1.0 notification"`
 	EventTime time.Time `xml:"eventTime"`
-	Data      []byte    `xml:",innerxml"`
+	Body      []byte    `xml:",innerxml"`
+}
+
+// Decode will decode the body of a noticiation into a value pointed to by v.
+// This is a simple wrapper around xml.Unmarshal.
+func (r Notification) Decode(v interface{}) error {
+	return xml.Unmarshal(r.Body, v)
 }
 
 type ErrSeverity string
@@ -133,6 +159,21 @@ func (e RPCError) Error() string {
 
 type RPCErrors []RPCError
 
+func (errs RPCErrors) Filter() RPCErrors {
+	if len(errs) == 0 {
+		return nil
+	}
+
+	filteredErrs := make(RPCErrors, 0, len(errs))
+	for _, err := range errs {
+		if err.Severity == ErrSevWarning {
+			continue
+		}
+		filteredErrs = append(filteredErrs, err)
+	}
+	return filteredErrs
+}
+
 func (errs RPCErrors) Error() string {
 	var sb strings.Builder
 	for i, err := range errs {
@@ -145,9 +186,9 @@ func (errs RPCErrors) Error() string {
 }
 
 func (errs RPCErrors) Unwrap() []error {
-	boxed := make([]error, len(errs))
+	boxedErrs := make([]error, len(errs))
 	for i, err := range errs {
-		boxed[i] = err
+		boxedErrs[i] = err
 	}
-	return boxed
+	return boxedErrs
 }

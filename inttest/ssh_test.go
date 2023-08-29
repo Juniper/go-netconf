@@ -131,6 +131,7 @@ func TestJunosCommand(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	err := session.Call(ctx, &cmd, nil)
+	reply, err := session.Do(ctx, &cmd)
 	assert.NoError(t, err)
+	assert.NoError(t, reply.Err())
 }

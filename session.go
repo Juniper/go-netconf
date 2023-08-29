@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"sync"
+	"sync/atomic"
 	"syscall"
 
 	"github.com/nemith/netconf/transport"
@@ -51,13 +52,13 @@ func WithNotificationHandler(nh NotificationHandler) SessionOption {
 type Session struct {
 	tr        transport.Transport
 	sessionID uint64
+	seq       atomic.Uint64
 
 	clientCaps          capabilitySet
 	serverCaps          capabilitySet
 	notificationHandler NotificationHandler
 
 	mu      sync.Mutex
-	seq     uint64
 	reqs    map[uint64]*req
 	closing bool
 }
@@ -66,14 +67,7 @@ type Session struct {
 // A NotificationHandler function can be passed in as an option when calling Open method of Session object
 // A typical use of the NofificationHandler function is to retrieve notifications once they are received so
 // that they can be parsed and/or stored somewhere.
-// Sample usage:
-// func GetNotificationsHandler(c chan string) netconf.NotificationsHandler {
-//	return func(nm NotificationMsg) {
-//		// just send the raw notification data to the channel
-//		c <- nm
-//	}
-//}
-type NotificationHandler func(msg NotificationMsg)
+type NotificationHandler func(msg Notification)
 
 func newSession(transport transport.Transport, opts ...SessionOption) *Session {
 	cfg := sessionConfig{
@@ -110,7 +104,7 @@ func Open(transport transport.Transport, opts ...SessionOption) (*Session, error
 
 // handshake exchanges handshake messages and reports if there are any errors.
 func (s *Session) handshake() error {
-	clientMsg := HelloMsg{
+	clientMsg := helloMsg{
 		Capabilities: s.clientCaps.All(),
 	}
 	if err := s.writeMsg(&clientMsg); err != nil {
@@ -124,7 +118,7 @@ func (s *Session) handshake() error {
 	// TODO: capture this error some how (ah defer and errors)
 	defer r.Close()
 
-	var serverMsg HelloMsg
+	var serverMsg helloMsg
 	if err := xml.NewDecoder(r).Decode(&serverMsg); err != nil {
 		return fmt.Errorf("failed to read server hello message: %w", err)
 	}
@@ -185,7 +179,7 @@ func startElement(d *xml.Decoder) (*xml.StartElement, error) {
 }
 
 type req struct {
-	reply chan RPCReplyMsg
+	reply chan Reply
 	ctx   context.Context
 }
 
@@ -212,13 +206,13 @@ func (s *Session) recvMsg() error {
 		if s.notificationHandler == nil {
 			return nil
 		}
-		var notif NotificationMsg
+		var notif Notification
 		if err := dec.DecodeElement(&notif, root); err != nil {
 			return fmt.Errorf("failed to decode notification message: %w", err)
 		}
 		s.notificationHandler(notif)
 	case xml.Name{Space: ncNamespace, Local: "rpc-reply"}:
-		var reply RPCReplyMsg
+		var reply Reply
 		if err := dec.DecodeElement(&reply, root); err != nil {
 			// What should we do here?  Kill the connection?
 			return fmt.Errorf("failed to decode rpc-reply message: %w", err)
@@ -290,19 +284,16 @@ func (s *Session) writeMsg(v any) error {
 	return w.Close()
 }
 
-func (s *Session) send(ctx context.Context, msg *RPCMsg) (chan RPCReplyMsg, error) {
+func (s *Session) send(ctx context.Context, msg *request) (chan Reply, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
-	s.seq++
-	msg.MessageID = s.seq
 
 	if err := s.writeMsg(msg); err != nil {
 		return nil, err
 	}
 
 	// cap of 1 makes sure we don't block on send
-	ch := make(chan RPCReplyMsg, 1)
+	ch := make(chan Reply, 1)
 	s.reqs[msg.MessageID] = &req{
 		reply: ch,
 		ctx:   ctx,
@@ -311,15 +302,22 @@ func (s *Session) send(ctx context.Context, msg *RPCMsg) (chan RPCReplyMsg, erro
 	return ch, nil
 }
 
-// Do issues a low level RPC call taking in a full RPCMsg and returning the full
-// RPCReplyMsg.  In most cases `Session.Call` will do what you want handling
-// errors and marshaling/unmarshaling your data.`
-func (s *Session) Do(ctx context.Context, msg *RPCMsg) (*RPCReplyMsg, error) {
+// Do issues a rpc call for the given NETCONF operation returning a Reply.  RPC
+// errors (i.e erros in the `<rpc-errors>` section of the `<rpc-reply>`) are
+// converted into go errors automatically.  Instead use `reply.Err()` or
+// `reply.RPCErrors` to access the errors and/or warnings.
+func (s *Session) Do(ctx context.Context, req any) (*Reply, error) {
+	msg := &request{
+		MessageID: s.seq.Add(1),
+		Operation: req,
+	}
+
 	ch, err := s.send(ctx, msg)
 	if err != nil {
 		return nil, err
 	}
 
+	// wait for reply or context to be cancelled.
 	select {
 	case reply, ok := <-ch:
 		if !ok {
@@ -336,32 +334,22 @@ func (s *Session) Do(ctx context.Context, msg *RPCMsg) (*RPCReplyMsg, error) {
 	}
 }
 
-// Call issues a rpc call for the given NETCONF operation and unmarshaling the
-// response into `resp`.
-func (s *Session) Call(ctx context.Context, op any, resp any) error {
-	msg := &RPCMsg{
-		Operation: op,
-	}
-
-	reply, err := s.Do(ctx, msg)
+// Call issues a rpc message with `req` as the body and decodes the reponse into
+// a pointer at `resp`.  Any Call errors are presented as a go error.
+func (s *Session) Call(ctx context.Context, req any, resp any) error {
+	reply, err := s.Do(ctx, &req)
 	if err != nil {
 		return err
 	}
 
-	// return rpc errors if we have them
-	switch {
-	case len(reply.Errors) == 1:
-		return reply.Errors[0]
-	case len(reply.Errors) > 1:
-		return reply.Errors
+	if err := reply.Err(); err != nil {
+		return err
 	}
 
-	// unmarshal the body
-	if resp != nil {
-		if err = xml.Unmarshal(reply.Body, resp); err != nil {
-			return err
-		}
+	if err := reply.Decode(&resp); err != nil {
+		return err
 	}
+
 	return nil
 }
 
@@ -377,7 +365,7 @@ func (s *Session) Close(ctx context.Context) error {
 	}
 
 	// This may fail so save the error but still close the underlying transport.
-	rpcErr := s.Call(ctx, &closeSession{}, nil)
+	_, callErr := s.Do(ctx, &closeSession{})
 
 	// Close the connection and ignore errors if the remote side hung up first.
 	if err := s.tr.Close(); err != nil &&
@@ -389,8 +377,8 @@ func (s *Session) Close(ctx context.Context) error {
 		}
 	}
 
-	if rpcErr != io.EOF {
-		return rpcErr
+	if callErr != io.EOF {
+		return callErr
 	}
 
 	return nil

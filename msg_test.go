@@ -65,12 +65,12 @@ func TestRawXMLMarshal(t *testing.T) {
 var helloMsgTestTable = []struct {
 	name string
 	raw  []byte
-	msg  HelloMsg
+	msg  helloMsg
 }{
 	{
 		name: "basic",
 		raw:  []byte(`<hello xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"><capabilities><capability>urn:ietf:params:netconf:base:1.0</capability><capability>urn:ietf:params:netconf:base:1.1</capability></capabilities></hello>`),
-		msg: HelloMsg{
+		msg: helloMsg{
 			XMLName: xml.Name{
 				Local: "hello",
 				Space: "urn:ietf:params:xml:ns:netconf:base:1.0",
@@ -100,7 +100,7 @@ var helloMsgTestTable = []struct {
   </capabilities>
   <session-id>410</session-id>
 </hello>`),
-		msg: HelloMsg{
+		msg: helloMsg{
 			XMLName: xml.Name{
 				Local: "hello",
 				Space: "urn:ietf:params:xml:ns:netconf:base:1.0",
@@ -127,7 +127,7 @@ var helloMsgTestTable = []struct {
 func TestUnmarshalHelloMsg(t *testing.T) {
 	for _, tc := range helloMsgTestTable {
 		t.Run(tc.name, func(t *testing.T) {
-			var got HelloMsg
+			var got helloMsg
 			err := xml.Unmarshal(tc.raw, &got)
 			assert.NoError(t, err)
 			assert.Equal(t, got, tc.msg)
@@ -168,7 +168,7 @@ func TestMarshalRPCMsg(t *testing.T) {
 		},
 		{
 			name:      "validate",
-			operation: validateReq{Source: Running},
+			operation: ValidateReq{Source: Running},
 			want:      []byte(`<rpc xmlns="urn:ietf:params:xml:ns:netconf:base:1.0" message-id="1"><validate><source><running/></source></validate></rpc>`),
 		},
 		{
@@ -194,7 +194,7 @@ func TestMarshalRPCMsg(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			out, err := xml.Marshal(&RPCMsg{
+			out, err := xml.Marshal(&request{
 				MessageID: 1,
 				Operation: tc.operation,
 			})
@@ -229,12 +229,12 @@ func TestUnmarshalRPCReply(t *testing.T) {
 	tt := []struct {
 		name  string
 		reply []byte
-		want  RPCReplyMsg
+		want  Reply
 	}{
 		{
 			name:  "error",
 			reply: replyJunosGetConfigError,
-			want: RPCReplyMsg{
+			want: Reply{
 				XMLName: xml.Name{
 					Space: "urn:ietf:params:xml:ns:netconf:base:1.0",
 					Local: "rpc-reply",
@@ -268,7 +268,7 @@ func TestUnmarshalRPCReply(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			var got RPCReplyMsg
+			var got Reply
 			err := xml.Unmarshal(tc.reply, &got)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.want, got)

@@ -75,20 +75,6 @@ func (u URL) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	return e.EncodeElement(&v, start)
 }
 
-/*type RawConfig []byte
-
-func (c RawConfig) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-	var v struct {
-		Config struct {
-			Inner []byte `xml:",innerxml"`
-		} `xml:"config,"`
-	}
-	v.Config.Inner = []byte(c)
-
-	return e.EncodeElement(&v, start)
-}*/
-
-// XXX: these should be typed?
 const (
 	// Running configuration datastore. Required by RFC6241
 	Running Datastore = "running"
@@ -102,13 +88,13 @@ const (
 	Startup Datastore = "startup" //
 )
 
-type getConfigReq struct {
+type GetConfigReq struct {
 	XMLName xml.Name  `xml:"get-config"`
 	Source  Datastore `xml:"source"`
 	// Filter
 }
 
-type getConfigResp struct {
+type GetConfigReply struct {
 	XMLName xml.Name `xml:"data"`
 	Config  []byte   `xml:",innerxml"`
 }
@@ -118,11 +104,11 @@ type getConfigResp struct {
 //
 // [RFC6241 7.1]: https://www.rfc-editor.org/rfc/rfc6241.html#section-7.1
 func (s *Session) GetConfig(ctx context.Context, source Datastore) ([]byte, error) {
-	req := getConfigReq{
+	req := GetConfigReq{
 		Source: source,
 	}
-	var resp getConfigResp
 
+	var resp GetConfigReply
 	if err := s.Call(ctx, &req, &resp); err != nil {
 		return nil, err
 	}
@@ -220,9 +206,9 @@ type (
 	errorStrategy        ErrorStrategy
 )
 
-func (o defaultMergeStrategy) apply(req *editConfigReq) { req.DefaultMergeStrategy = MergeStrategy(o) }
-func (o testStrategy) apply(req *editConfigReq)         { req.TestStrategy = TestStrategy(o) }
-func (o errorStrategy) apply(req *editConfigReq)        { req.ErrorStrategy = ErrorStrategy(o) }
+func (o defaultMergeStrategy) apply(req *EditConfigReq) { req.DefaultMergeStrategy = MergeStrategy(o) }
+func (o testStrategy) apply(req *EditConfigReq)         { req.TestStrategy = TestStrategy(o) }
+func (o errorStrategy) apply(req *EditConfigReq)        { req.ErrorStrategy = ErrorStrategy(o) }
 
 // WithDefaultMergeStrategy sets the default config merging strategy for the
 // <edit-config> operation.  Only [Merge], [Replace], and [None] are supported
@@ -240,12 +226,13 @@ func WithTestStrategy(op TestStrategy) EditConfigOption { return testStrategy(op
 // config.  See [ErrorStrategy] for the available options.
 func WithErrorStrategy(opt ErrorStrategy) EditConfigOption { return errorStrategy(opt) }
 
-type editConfigReq struct {
+type EditConfigReq struct {
 	XMLName              xml.Name      `xml:"edit-config"`
 	Target               Datastore     `xml:"target"`
 	DefaultMergeStrategy MergeStrategy `xml:"default-operation,omitempty"`
 	TestStrategy         TestStrategy  `xml:"test-option,omitempty"`
 	ErrorStrategy        ErrorStrategy `xml:"error-option,omitempty"`
+
 	// either of these two values
 	Config any    `xml:"config,omitempty"`
 	URL    string `xml:"url,omitempty"`
@@ -253,7 +240,7 @@ type editConfigReq struct {
 
 // EditOption is a optional arguments to [Session.EditConfig] method
 type EditConfigOption interface {
-	apply(*editConfigReq)
+	apply(*EditConfigReq)
 }
 
 // EditConfig issues the `<edit-config>` operation defined in [RFC6241 7.2] for
@@ -261,7 +248,7 @@ type EditConfigOption interface {
 //
 // [RFC6241 7.2]: https://www.rfc-editor.org/rfc/rfc6241.html#section-7.2
 func (s *Session) EditConfig(ctx context.Context, target Datastore, config any, opts ...EditConfigOption) error {
-	req := editConfigReq{
+	req := EditConfigReq{
 		Target: target,
 	}
 
@@ -289,7 +276,7 @@ func (s *Session) EditConfig(ctx context.Context, target Datastore, config any, 
 	return s.Call(ctx, &req, &resp)
 }
 
-type copyConfigReq struct {
+type CopyConfigReq struct {
 	XMLName xml.Name `xml:"copy-config"`
 	Source  any      `xml:"source"`
 	Target  any      `xml:"target"`
@@ -305,7 +292,7 @@ type copyConfigReq struct {
 //
 // [RFC6241 7.3] https://www.rfc-editor.org/rfc/rfc6241.html#section-7.3
 func (s *Session) CopyConfig(ctx context.Context, source, target any) error {
-	req := copyConfigReq{
+	req := CopyConfigReq{
 		Source: source,
 		Target: target,
 	}
@@ -314,13 +301,13 @@ func (s *Session) CopyConfig(ctx context.Context, source, target any) error {
 	return s.Call(ctx, &req, &resp)
 }
 
-type deleteConfigReq struct {
+type DeleteConfigReq struct {
 	XMLName xml.Name  `xml:"delete-config"`
 	Target  Datastore `xml:"target"`
 }
 
 func (s *Session) DeleteConfig(ctx context.Context, target Datastore) error {
-	req := deleteConfigReq{
+	req := DeleteConfigReq{
 		Target: target,
 	}
 
@@ -328,56 +315,58 @@ func (s *Session) DeleteConfig(ctx context.Context, target Datastore) error {
 	return s.Call(ctx, &req, &resp)
 }
 
-type lockReq struct {
+type LockReq struct {
 	XMLName xml.Name
 	Target  Datastore `xml:"target"`
 }
 
 func (s *Session) Lock(ctx context.Context, target Datastore) error {
-	req := lockReq{
+	req := LockReq{
 		XMLName: xml.Name{Local: "lock"},
 		Target:  target,
 	}
-	var resp OKResp
 
+	var resp OKResp
 	return s.Call(ctx, &req, &resp)
 }
 
 func (s *Session) Unlock(ctx context.Context, target Datastore) error {
-	req := lockReq{
+	req := LockReq{
 		XMLName: xml.Name{Local: "unlock"},
 		Target:  target,
 	}
-	var resp OKResp
 
+	var resp OKResp
 	return s.Call(ctx, &req, &resp)
 }
 
-func (s *Session) Get(ctx context.Context /* filter */) error {
+/*
+func (s *Session) Get(ctx context.Context,  filter Filter) error {
 	panic("unimplemented")
 }
+*/
 
-type killSessionReq struct {
+type KillSessionReq struct {
 	XMLName   xml.Name `xml:"kill-session"`
 	SessionID uint32   `xml:"session-id"`
 }
 
 func (s *Session) KillSession(ctx context.Context, sessionID uint32) error {
-	req := killSessionReq{
+	req := KillSessionReq{
 		SessionID: sessionID,
 	}
-	var resp OKResp
 
+	var resp OKResp
 	return s.Call(ctx, &req, &resp)
 }
 
-type validateReq struct {
+type ValidateReq struct {
 	XMLName xml.Name `xml:"validate"`
 	Source  any      `xml:"source"`
 }
 
 func (s *Session) Validate(ctx context.Context, source any) error {
-	req := validateReq{
+	req := ValidateReq{
 		Source: source,
 	}
 
@@ -385,7 +374,7 @@ func (s *Session) Validate(ctx context.Context, source any) error {
 	return s.Call(ctx, &req, &resp)
 }
 
-type commitReq struct {
+type CommitReq struct {
 	XMLName        xml.Name   `xml:"commit"`
 	Confirmed      ExtantBool `xml:"confirmed,omitempty"`
 	ConfirmTimeout int64      `xml:"confirm-timeout,omitempty"`
@@ -395,7 +384,7 @@ type commitReq struct {
 
 // CommitOption is a optional arguments to [Session.Commit] method
 type CommitOption interface {
-	apply(*commitReq)
+	apply(*CommitReq)
 }
 
 type confirmed bool
@@ -405,16 +394,16 @@ type confirmedTimeout struct {
 type persist string
 type persistID string
 
-func (o confirmed) apply(req *commitReq) { req.Confirmed = true }
-func (o confirmedTimeout) apply(req *commitReq) {
+func (o confirmed) apply(req *CommitReq) { req.Confirmed = true }
+func (o confirmedTimeout) apply(req *CommitReq) {
 	req.Confirmed = true
 	req.ConfirmTimeout = int64(o.Seconds())
 }
-func (o persist) apply(req *commitReq) {
+func (o persist) apply(req *CommitReq) {
 	req.Confirmed = true
 	req.Persist = string(o)
 }
-func (o persistID) apply(req *commitReq) { req.PersistID = string(o) }
+func (o persistID) apply(req *CommitReq) { req.PersistID = string(o) }
 
 // RollbackOnError will restore the configuration back to before the
 // `<edit-config>` operation took place.  This requires the device to
@@ -446,7 +435,7 @@ func WithPersistID(id string) persistID { return persistID(id) }
 // Commit will commit a canidate config to the running comming. This requires
 // the device to support the `:canidate` capability.
 func (s *Session) Commit(ctx context.Context, opts ...CommitOption) error {
-	var req commitReq
+	var req CommitReq
 	for _, opt := range opts {
 		opt.apply(&req)
 	}
@@ -461,18 +450,18 @@ func (s *Session) Commit(ctx context.Context, opts ...CommitOption) error {
 
 // CancelCommitOption is a optional arguments to [Session.CancelCommit] method
 type CancelCommitOption interface {
-	applyCancelCommit(*cancelCommitReq)
+	applyCancelCommit(*CancelCommitReq)
 }
 
-func (o persistID) applyCancelCommit(req *cancelCommitReq) { req.PersistID = string(o) }
+func (o persistID) applyCancelCommit(req *CancelCommitReq) { req.PersistID = string(o) }
 
-type cancelCommitReq struct {
+type CancelCommitReq struct {
 	XMLName   xml.Name `xml:"cancel-commit"`
 	PersistID string   `xml:"persist-id,omitempty"`
 }
 
 func (s *Session) CancelCommit(ctx context.Context, opts ...CancelCommitOption) error {
-	var req cancelCommitReq
+	var req CancelCommitReq
 	for _, opt := range opts {
 		opt.applyCancelCommit(&req)
 	}
@@ -483,10 +472,10 @@ func (s *Session) CancelCommit(ctx context.Context, opts ...CancelCommitOption) 
 
 // CreateSubscriptionOption is a optional arguments to [Session.CreateSubscription] method
 type CreateSubscriptionOption interface {
-	apply(req *createSubscriptionReq)
+	apply(req *CreateSubscriptionReq)
 }
 
-type createSubscriptionReq struct {
+type CreateSubscriptionReq struct {
 	XMLName xml.Name `xml:"urn:ietf:params:xml:ns:netconf:notification:1.0 create-subscription"`
 	Stream  string   `xml:"stream,omitempty"`
 	// TODO: Implement filter
@@ -499,13 +488,13 @@ type stream string
 type startTime time.Time
 type endTime time.Time
 
-func (o stream) apply(req *createSubscriptionReq) {
+func (o stream) apply(req *CreateSubscriptionReq) {
 	req.Stream = string(o)
 }
-func (o startTime) apply(req *createSubscriptionReq) {
+func (o startTime) apply(req *CreateSubscriptionReq) {
 	req.StartTime = time.Time(o).Format(time.RFC3339)
 }
-func (o endTime) apply(req *createSubscriptionReq) {
+func (o endTime) apply(req *CreateSubscriptionReq) {
 	req.EndTime = time.Time(o).Format(time.RFC3339)
 }
 
@@ -514,7 +503,7 @@ func WithStartTimeOption(st time.Time) CreateSubscriptionOption { return startTi
 func WithEndTimeOption(et time.Time) CreateSubscriptionOption   { return endTime(et) }
 
 func (s *Session) CreateSubscription(ctx context.Context, opts ...CreateSubscriptionOption) error {
-	var req createSubscriptionReq
+	var req CreateSubscriptionReq
 	for _, opt := range opts {
 		opt.apply(&req)
 	}
