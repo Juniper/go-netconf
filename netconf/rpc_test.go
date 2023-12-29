@@ -35,6 +35,22 @@ func TestRPCMessage(t *testing.T) {
 			xml: []byte(`<rpc message-id="00000000-0000-0000-0000-000000000000" xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"><get-config><source><running/></source></get-config></rpc>`),
 		},
 		{
+			name:    "getconfigfilteredxpath",
+			methods: []RPCMethod{MethodGetConfigFiltered("running", "xpath", "/x/y/z")},
+			msg: &RPCMessage{
+				Methods: []RPCMethod{RawMethod(`<get-config><source><running/></source><filter type="xpath" select="/x/y/z"/></get-config>`)},
+			},
+			xml: []byte(`<rpc message-id="00000000-0000-0000-0000-000000000000" xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"><get-config><source><running/></source><filter type="xpath" select="/x/y/z"/></get-config></rpc>`),
+		},
+		{
+			name:    "getconfigfilteredsubtree",
+			methods: []RPCMethod{MethodGetConfigFiltered("running", "subtree", "<x><y><z/></y></x>")},
+			msg: &RPCMessage{
+				Methods: []RPCMethod{RawMethod(`<get-config><source><running/></source><filter type="subtree"><x><y><z/></y></x></filter></get-config>`)},
+			},
+			xml: []byte(`<rpc message-id="00000000-0000-0000-0000-000000000000" xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"><get-config><source><running/></source><filter type="subtree"><x><y><z/></y></x></filter></get-config></rpc>`),
+		},
+		{
 			name:    "empty",
 			methods: []RPCMethod{},
 			msg: &RPCMessage{

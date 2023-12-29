@@ -134,6 +134,18 @@ func MethodGetConfig(source string) RawMethod {
 	return RawMethod(fmt.Sprintf("<get-config><source><%s/></source></get-config>", source))
 }
 
+// MethodGetConfigFiltered files a NETCONF get-config source request with the remote host with a filter
+func MethodGetConfigFiltered(source string, filterType string, dataXml string) RawMethod {
+	if filterType == "xpath" {
+		return RawMethod(fmt.Sprintf("<get-config><source><%s/></source><filter type=\"xpath\" select=\"%s\"/></get-config>", source, dataXml))
+	} else if filterType == "subtree" {
+		return RawMethod(fmt.Sprintf("<get-config><source><%s/></source><filter type=\"subtree\">%s</filter></get-config>", source, dataXml))
+	}
+
+	// if the filter type was not recognized, return a non-filtered get
+	return RawMethod(fmt.Sprintf("<get-config><source><%s/></source></get-config>", source))
+}
+
 // MethodGet files a NETCONF get source request with the remote host
 func MethodGet(filterType string, dataXml string) RawMethod {
 	return RawMethod(fmt.Sprintf("<get><filter type=\"%s\">%s</filter></get>", filterType, dataXml))
