@@ -76,8 +76,9 @@ var chunkedTests = []struct {
 func TestChunkReaderReadByte(t *testing.T) {
 	for _, tc := range chunkedTests {
 		t.Run(tc.name, func(t *testing.T) {
-			r := bufio.NewReader(bytes.NewReader(tc.input))
-			cr := &chunkReader{r: r}
+			r := &chunkReader{
+				r: bufio.NewReader(bytes.NewReader(tc.input)),
+			}
 
 			buf := make([]byte, 8192)
 
@@ -87,7 +88,7 @@ func TestChunkReaderReadByte(t *testing.T) {
 				err error
 			)
 			for {
-				b, err = cr.ReadByte()
+				b, err = r.ReadByte()
 				if err != nil {
 					break
 				}
@@ -97,9 +98,12 @@ func TestChunkReaderReadByte(t *testing.T) {
 			buf = buf[:n]
 
 			if err != io.EOF {
-				assert.Equal(t, err, tc.err)
+				assert.Equal(t, tc.err, err)
 			}
 			assert.Equal(t, tc.want, buf)
+
+			// TODO: validate the return error
+			r.Close()
 		})
 	}
 }
@@ -114,6 +118,9 @@ func TestChunkReaderRead(t *testing.T) {
 			got, err := io.ReadAll(r)
 			assert.Equal(t, tc.err, err)
 			assert.Equal(t, tc.want, got)
+
+			// TODO: validate the return error
+			r.Close()
 		})
 	}
 }
@@ -264,6 +271,9 @@ func TestEOMReadByte(t *testing.T) {
 			}
 
 			assert.Equal(t, tc.want, buf)
+
+			// TODO: validate the return error
+			r.Close()
 		})
 	}
 }
@@ -277,6 +287,8 @@ func TestEOMRead(t *testing.T) {
 			got, err := io.ReadAll(r)
 			assert.Equal(t, err, tc.err)
 			assert.Equal(t, tc.want, got)
+			// TODO: validate the return error
+			r.Close()
 		})
 	}
 }

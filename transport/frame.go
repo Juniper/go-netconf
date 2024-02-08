@@ -180,6 +180,9 @@ func (r *chunkReader) readHeader() error {
 		if _, err := r.r.Discard(2); err != nil {
 			return err
 		}
+		// not stricly needed but it is the responsibility of this function to
+		// update chunkLeft.
+		r.chunkLeft = 0
 		return io.EOF
 	}
 
@@ -213,7 +216,7 @@ func (r *chunkReader) Read(p []byte) (int, error) {
 		return 0, ErrInvalidIO
 	}
 
-	// still reading existing chunk
+	// done with existing chunck so grab the next one
 	if r.chunkLeft <= 0 {
 		if err := r.readHeader(); err != nil {
 			return 0, err
@@ -234,7 +237,7 @@ func (r *chunkReader) ReadByte() (byte, error) {
 		return 0, ErrInvalidIO
 	}
 
-	// still reading existing chunk
+	// done with existing chunck so grab the next one
 	if r.chunkLeft <= 0 {
 		if err := r.readHeader(); err != nil {
 			return 0, err
@@ -255,8 +258,11 @@ func (r *chunkReader) Close() error {
 	// poison the reader so that it can no longer be used
 	defer func() { r.r = nil }()
 
+	// read all remaining chunks until we get to the end of the frame.
 	for {
 		if r.chunkLeft <= 0 {
+			// readHeader return io.EOF when it encounter the end-of-frame
+			// marker ("\n##\n")
 			err := r.readHeader()
 			switch err {
 			case nil:
@@ -268,9 +274,11 @@ func (r *chunkReader) Close() error {
 			}
 		}
 
-		if _, err := r.r.Discard(r.chunkLeft); err != nil {
+		n, err := r.r.Discard(r.chunkLeft)
+		if err != nil {
 			return err
 		}
+		r.chunkLeft -= n
 	}
 }
 
