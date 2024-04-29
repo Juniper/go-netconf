@@ -9,6 +9,7 @@ package netconf
 import (
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -21,6 +22,8 @@ import (
 )
 
 const (
+	// bastionDefaultPort is the default port used when SSH via Bastion
+	bastionDefaultPort = 22
 	// sshDefaultPort is the default SSH port used when communicating with
 	// NETCONF
 	sshDefaultPort = 830
@@ -58,6 +61,52 @@ func (t *TransportSSH) Close() error {
 		return t.sshClient.Close()
 	}
 	return fmt.Errorf("No connection to close")
+}
+
+// DialWithBasstion connects and establishes SSH sessions over bastion host
+//
+// bastion can be an IP address (e.g) 172.16.2.1 which uses default port 22.
+// Bastion can also specify port with format <host>:<port> (e.g 172.16.2.1:5001)
+// target can be an IP address (e.g.) 172.16.1.1 which utlizes the default
+// NETCONF over SSH port of 830.  Target can also specify a port with the
+// following format <host>:<port (e.g 172.16.1.1:22)
+//
+// config takes a ssh.ClientConfig connection. See documentation for
+// go.crypto/ssh for documenation.  There is a helper function SSHConfigPassword
+// thar returns a ssh.ClientConfig for simple username/password authentication
+func (t *TransportSSH) DialWithBasstion(bastion, target string, bastionConf, config *ssh.ClientConfig) error {
+	var err error
+
+	if !strings.Contains(bastion, ":") {
+		bastion = fmt.Sprintf("%s:%d", bastion, bastionDefaultPort)
+	}
+
+	bastionClient, err := ssh.Dial("tcp", bastion, bastionConf)
+	if err != nil {
+		return err
+	}
+
+	if !strings.Contains(target, ":") {
+		target = fmt.Sprintf("%s:%d", target, sshDefaultPort)
+	}
+
+	targetConn, err := bastionClient.Dial("tcp", target)
+	if err != nil {
+		return err
+	}
+
+	ncc, chans, reqs, err := ssh.NewClientConn(targetConn, target, config)
+	if err != nil {
+		return err
+	}
+
+	t.sshClient = ssh.NewClient(ncc, chans, reqs)
+	if t.sshClient == nil {
+		return errors.New("Error getting SSH Client for " + target + " via Bastion " + bastion)
+	}
+
+	err = t.setupSession()
+	return err
 }
 
 // Dial connects and establishes SSH sessions
@@ -115,6 +164,18 @@ func NewSSHSession(conn net.Conn, config *ssh.ClientConfig) (*Session, error) {
 	}
 
 	return NewSession(t), nil
+}
+
+// DialSSHWithBastion creates a new NETCONF session using a SSH Transport.
+// See TransportSSH.Dial for arguments.
+func DialSSHWithBastion(bastion, target string, bastionConf, config *ssh.ClientConfig) (*Session, error) {
+	var t TransportSSH
+	err := t.DialWithBasstion(bastion, target, bastionConf, config)
+	if err != nil {
+		t.Close()
+		return nil, err
+	}
+	return NewSession(&t), nil
 }
 
 // DialSSH creates a new NETCONF session using a SSH Transport.
