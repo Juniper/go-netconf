@@ -1,3 +1,4 @@
+// Deprecated: This package is no longer maintained.  Please use github.com/nemith/netconf
 module github.com/Juniper/go-netconf
 
 go 1.12
