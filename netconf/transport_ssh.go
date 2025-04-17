@@ -36,7 +36,7 @@ type TransportSSH struct {
 	sshSession *ssh.Session
 
 	// SSH Client connection is managed externally
-	externClient bool
+	managedSession bool
 }
 
 // Close closes an existing SSH session and socket if they exist.
