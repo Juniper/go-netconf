@@ -125,7 +125,12 @@ func NewSSHSession(conn net.Conn, config *ssh.ClientConfig) (*Session, error) {
 // NewSSHClientSession creates a new NETCONF session using an existing ssh.Client
 // initiated and managed externally.
 func NewSSHClientSession(client *ssh.Client) (*Session, error) {
-	t, err := clientToTransport(client)
+	t := &TransportSSH{
+		sshClient:      client,
+		managedSession: true,
+	}
+
+	err := t.setupSession()
 	if err != nil {
 		return nil, err
 	}
@@ -253,20 +258,6 @@ func connToTransport(conn net.Conn, config *ssh.ClientConfig) (*TransportSSH, er
 	t.sshClient = ssh.NewClient(c, chans, reqs)
 
 	err = t.setupSession()
-	if err != nil {
-		return nil, err
-	}
-
-	return t, nil
-}
-
-func clientToTransport(client *ssh.Client) (*TransportSSH, error) {
-	t := &TransportSSH{
-		sshClient:      client,
-		managedSession: true,
-	}
-
-	err := t.setupSession()
 	if err != nil {
 		return nil, err
 	}
