@@ -51,7 +51,7 @@ func (t *TransportSSH) Close() error {
 		if err := t.sshSession.Close(); err != nil {
 			// If we receive an error when trying to close the session, then
 			// lets try to close the socket, otherwise it will be left open
-			if !t.externClient {
+			if !t.managedSession {
 				t.sshClient.Close()
 			}
 			return err
@@ -59,7 +59,7 @@ func (t *TransportSSH) Close() error {
 	}
 
 	// Close the socket
-	if !t.externClient && t.sshClient != nil {
+	if !t.managedSession && t.sshClient != nil {
 		return t.sshClient.Close()
 	}
 	return fmt.Errorf("No connection to close")
@@ -262,8 +262,8 @@ func connToTransport(conn net.Conn, config *ssh.ClientConfig) (*TransportSSH, er
 
 func clientToTransport(client *ssh.Client) (*TransportSSH, error) {
 	t := &TransportSSH{
-		sshClient:    client,
-		externClient: true,
+		sshClient:      client,
+		managedSession: true,
 	}
 
 	err := t.setupSession()
