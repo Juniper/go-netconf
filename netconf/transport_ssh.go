@@ -122,9 +122,9 @@ func NewSSHSession(conn net.Conn, config *ssh.ClientConfig) (*Session, error) {
 	return NewSession(t), nil
 }
 
-// NewSSHSessionForExternalClient creates a new NETCONF session using an existing ssh.Client
+// NewSSHClientSession creates a new NETCONF session using an existing ssh.Client
 // initiated and managed externally.
-func NewSSHSessionForExternalClient(client *ssh.Client) (*Session, error) {
+func NewSSHClientSession(client *ssh.Client) (*Session, error) {
 	t, err := clientToTransport(client)
 	if err != nil {
 		return nil, err
